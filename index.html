@@ -7,659 +7,939 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;400;600;700;900&family=Share+Tech+Mono&family=Cinzel:wght@400;700;900&display=swap" rel="stylesheet" />
 <style>
-  /* ─── RESET & BASE ─────────────────────────────────── */
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --black:   #000000;
-    --bg:      #030303;
-    --surface: #080808;
-    --panel:   #0a0a0a;
-    --border:  #1a1a1a;
-    --line:    #141414;
-    --dim:     #2a2a2a;
-    --muted:   #444444;
-    --text:    #c8c8c8;
-    --bright:  #e8e8e8;
-    --red:     #8b0000;
-    --red-hot: #cc1111;
-    --red-glow:#ff2222;
-    --gold:    #b8922a;
-    --gold-lt: #d4a93a;
-    --scan:    rgba(180,180,180,0.03);
-    --ff-zh:   'Noto Serif TC', serif;
-    --ff-en:   'Cinzel', serif;
-    --ff-mono: 'Share Tech Mono', monospace;
-  }
-  html, body { height: 100%; width: 100%; overflow: hidden; }
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--ff-zh);
-    font-size: 13px;
-    line-height: 1.6;
-    cursor: crosshair;
-    user-select: none;
-  }
+/* ─── RESET & BASE ─────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --black:   #000000;
+  --bg:      #030303;
+  --surface: #080808;
+  --panel:   #0a0a0a;
+  --border:  #1a1a1a;
+  --line:    #141414;
+  --dim:     #2a2a2a;
+  --muted:   #444444;
+  --text:    #c8c8c8;
+  --bright:  #e8e8e8;
+  --red:     #8b0000;
+  --red-hot: #cc1111;
+  --red-glow:#ff2222;
+  --gold:    #b8922a;
+  --gold-lt: #d4a93a;
+  --scan:    rgba(180,180,180,0.03);
+  --ff-zh:   'Noto Serif TC', serif;
+  --ff-en:   'Cinzel', serif;
+  --ff-mono: 'Share Tech Mono', monospace;
+  --event-speed: 3200ms;
+}
+html, body { height: 100%; width: 100%; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--ff-zh);
+  font-size: 13px;
+  line-height: 1.6;
+  cursor: crosshair;
+  user-select: none;
+  overflow: hidden;
+}
 
-  /* ─── SCANLINE OVERLAY ────────────────────────────── */
-  body::before {
-    content: '';
-    position: fixed; inset: 0; z-index: 9999;
-    pointer-events: none;
-    background: repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 2px,
-      var(--scan) 2px,
-      var(--scan) 4px
-    );
-  }
-  body::after {
-    content: '';
-    position: fixed; inset: 0; z-index: 9998;
-    pointer-events: none;
-    background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.6) 100%);
-  }
+/* ─── SCANLINE OVERLAY ────────────────────────────── */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 9999;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    var(--scan) 2px,
+    var(--scan) 4px
+  );
+}
+body::after {
+  content: '';
+  position: fixed; inset: 0; z-index: 9998;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.6) 100%);
+}
 
-  /* ─── TOP HEADER ──────────────────────────────────── */
-  #header {
-    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-    height: 52px;
-    background: var(--black);
-    border-bottom: 1px solid var(--border);
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 0 24px;
-  }
-  #header .sys-id {
-    font-family: var(--ff-mono);
-    font-size: 10px;
-    color: var(--muted);
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-  }
-  #header .title-block { text-align: center; }
-  #header .title-zh {
-    font-family: var(--ff-zh);
-    font-weight: 900;
-    font-size: 14px;
-    color: var(--bright);
-    letter-spacing: 0.4em;
-    text-transform: uppercase;
-  }
-  #header .title-en {
-    font-family: var(--ff-en);
-    font-size: 9px;
-    color: var(--muted);
-    letter-spacing: 0.3em;
-    margin-top: 1px;
-  }
-  #header .status-row {
-    display: flex; align-items: center; gap: 16px;
-  }
-  .pulse-dot {
-    width: 6px; height: 6px; border-radius: 50%;
-    background: var(--red-hot);
-    box-shadow: 0 0 6px var(--red-hot);
-    animation: pulse-red 1.4s infinite;
-  }
-  @keyframes pulse-red {
-    0%,100%{ opacity:1; transform:scale(1); }
-    50%{ opacity:0.4; transform:scale(0.7); }
-  }
-  .live-badge {
-    font-family: var(--ff-mono);
-    font-size: 9px;
-    color: var(--red-hot);
-    letter-spacing: 0.2em;
-  }
-  .clock {
-    font-family: var(--ff-mono);
-    font-size: 11px;
-    color: var(--muted);
-    letter-spacing: 0.1em;
-  }
+/* ─── DEATH FLASH OVERLAY ─────────────────────────── */
+#death-flash {
+  position: fixed; inset: 0; z-index: 9997;
+  pointer-events: none;
+  background: rgba(139,0,0,0);
+  transition: background 0.1s ease;
+}
+#death-flash.flash {
+  animation: death-screen-flash 0.7s ease forwards;
+}
+@keyframes death-screen-flash {
+  0%   { background: rgba(139,0,0,0.35); }
+  100% { background: rgba(139,0,0,0); }
+}
 
-  /* ─── MAIN LAYOUT ─────────────────────────────────── */
+/* ─── TOP HEADER ──────────────────────────────────── */
+#header {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  height: 52px;
+  background: var(--black);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 24px;
+}
+#header .sys-id {
+  font-family: var(--ff-mono);
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+#header .title-block { text-align: center; }
+#header .title-zh {
+  font-family: var(--ff-zh);
+  font-weight: 900;
+  font-size: 14px;
+  color: var(--bright);
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+}
+#header .title-en {
+  font-family: var(--ff-en);
+  font-size: 9px;
+  color: var(--muted);
+  letter-spacing: 0.3em;
+  margin-top: 1px;
+}
+#header .status-row {
+  display: flex; align-items: center; gap: 16px;
+}
+.pulse-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--red-hot);
+  box-shadow: 0 0 6px var(--red-hot);
+  animation: pulse-red 1.4s infinite;
+}
+@keyframes pulse-red {
+  0%,100%{ opacity:1; transform:scale(1); }
+  50%{ opacity:0.4; transform:scale(0.7); }
+}
+.live-badge {
+  font-family: var(--ff-mono);
+  font-size: 9px;
+  color: var(--red-hot);
+  letter-spacing: 0.2em;
+}
+.clock {
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+}
+
+/* ─── MAIN LAYOUT ─────────────────────────────────── */
+#app {
+  position: fixed; inset: 0;
+  padding-top: 52px;
+  display: grid;
+  grid-template-columns: 280px 1fr 260px;
+  grid-template-rows: 1fr;
+  gap: 0;
+}
+
+/* ─── PANEL BASE ──────────────────────────────────── */
+.panel {
+  background: var(--panel);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+.panel:last-child { border-right: none; border-left: 1px solid var(--border); }
+.panel-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--black);
+  flex-shrink: 0;
+}
+.panel-label {
+  font-family: var(--ff-mono);
+  font-size: 9px;
+  color: var(--muted);
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+.panel-title {
+  font-family: var(--ff-zh);
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--bright);
+  letter-spacing: 0.1em;
+}
+
+/* ─── LEFT PANEL — TRIBUTES ───────────────────────── */
+#panel-left { grid-column: 1; }
+#tribute-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+#tribute-list::-webkit-scrollbar { width: 2px; }
+#tribute-list::-webkit-scrollbar-track { background: transparent; }
+#tribute-list::-webkit-scrollbar-thumb { background: var(--dim); }
+
+.tribute-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 10px 12px;
+  position: relative;
+  transition: border-color 0.2s, background 0.2s;
+  cursor: pointer;
+}
+.tribute-card::before {
+  content: '';
+  position: absolute; left: 0; top: 0; bottom: 0;
+  width: 2px;
+  background: var(--dim);
+  transition: background 0.2s;
+}
+.tribute-card:hover { background: #0e0e0e; border-color: var(--dim); }
+.tribute-card:hover::before { background: var(--gold); }
+.tribute-card.eliminated {
+  opacity: 0.35;
+}
+.tribute-card.eliminated::before { background: var(--red) !important; }
+.tribute-card.my-tribute {
+  border-color: var(--gold);
+  background: rgba(184,146,42,0.05);
+}
+.tribute-card.my-tribute::before { background: var(--gold-lt); }
+
+.tribute-name {
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--bright);
+  letter-spacing: 0.05em;
+  margin-bottom: 2px;
+}
+.tribute-card.eliminated .tribute-name { color: var(--muted); }
+.tribute-district {
+  font-family: var(--ff-mono);
+  font-size: 9px;
+  color: var(--muted);
+  letter-spacing: 0.2em;
+  margin-bottom: 6px;
+}
+.tribute-stats {
+  display: flex; gap: 8px; flex-wrap: wrap;
+}
+.stat-bar {
+  flex: 1; min-width: 60px;
+}
+.stat-label {
+  font-family: var(--ff-mono);
+  font-size: 8px;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  margin-bottom: 3px;
+}
+.bar-track {
+  height: 2px;
+  background: var(--dim);
+  position: relative;
+}
+.bar-fill {
+  position: absolute; left: 0; top: 0; bottom: 0;
+  background: var(--gold);
+  transition: width 0.8s ease;
+}
+.tribute-card.eliminated .bar-fill { background: var(--red); }
+
+.tribute-status {
+  position: absolute; top: 10px; right: 10px;
+  font-family: var(--ff-mono);
+  font-size: 8px;
+  letter-spacing: 0.15em;
+}
+.status-alive { color: #4a9a4a; }
+.status-dead {
+  color: var(--red-hot);
+  text-shadow: 0 0 8px var(--red);
+}
+.my-badge {
+  position: absolute; bottom: 8px; right: 10px;
+  font-family: var(--ff-mono);
+  font-size: 8px;
+  color: var(--gold);
+  letter-spacing: 0.15em;
+}
+
+/* ─── CENTER PANEL — EVENT LOG ────────────────────── */
+#panel-center {
+  grid-column: 2;
+  background: var(--black);
+  border-right: 1px solid var(--border);
+  border-left: 1px solid var(--border);
+}
+#panel-center .panel-header {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 8px;
+}
+.log-controls {
+  display: flex; gap: 6px; align-items: center; flex-wrap: wrap;
+}
+.btn-control {
+  font-family: var(--ff-mono);
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-transform: uppercase;
+}
+.btn-control:hover {
+  color: var(--bright);
+  border-color: var(--dim);
+  background: var(--surface);
+}
+.btn-control.active {
+  color: var(--gold);
+  border-color: var(--gold);
+}
+.btn-control.danger-btn:hover {
+  color: var(--red-hot);
+  border-color: var(--red-hot);
+}
+
+/* Speed indicator */
+.speed-indicator {
+  font-family: var(--ff-mono);
+  font-size: 9px;
+  color: var(--gold-lt);
+  letter-spacing: 0.1em;
+  padding: 4px 8px;
+  border: 1px solid rgba(184,146,42,0.3);
+  background: rgba(184,146,42,0.05);
+}
+
+/* Filter bar */
+#filter-bar {
+  display: flex; gap: 4px; padding: 8px 16px;
+  border-bottom: 1px solid var(--line);
+  background: rgba(0,0,0,0.5);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+.filter-btn {
+  font-family: var(--ff-mono);
+  font-size: 8px;
+  letter-spacing: 0.15em;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--line);
+  padding: 3px 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-transform: uppercase;
+}
+.filter-btn.active { color: var(--bright); border-color: var(--dim); }
+.filter-btn.f-combat.active { color: var(--red-hot); border-color: var(--red); }
+.filter-btn.f-nature.active { color: #6aaa6a; border-color: #2a4a2a; }
+.filter-btn.f-social.active { color: #7a9acc; border-color: #2a3a5a; }
+.filter-btn.f-system.active { color: var(--gold-lt); border-color: var(--gold); }
+
+#event-log {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+#event-log::-webkit-scrollbar { width: 2px; }
+#event-log::-webkit-scrollbar-thumb { background: var(--dim); }
+
+.log-entry {
+  padding: 10px 14px;
+  border-left: 1px solid var(--dim);
+  background: transparent;
+  animation: entry-in 0.4s ease forwards;
+  opacity: 0;
+  position: relative;
+}
+@keyframes entry-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.log-entry:hover { background: rgba(255,255,255,0.015); }
+
+.log-entry.type-death {
+  border-left-color: var(--red);
+  background: rgba(139,0,0,0.06);
+  animation: entry-in 0.4s ease forwards, death-flash 0.6s ease;
+}
+@keyframes death-flash {
+  0%{ background: rgba(139,0,0,0.25); }
+  100%{ background: rgba(139,0,0,0.06); }
+}
+.log-entry.type-alliance { border-left-color: #1a3a1a; }
+.log-entry.type-system {
+  border-left-color: var(--gold);
+  background: rgba(184,146,42,0.04);
+}
+.log-entry.type-hazard { border-left-color: #3a2800; }
+.log-entry.type-combat { border-left-color: #3a1010; }
+
+/* Filter hide */
+.log-entry.hidden { display: none; }
+
+.log-time {
+  font-family: var(--ff-mono);
+  font-size: 9px;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  margin-bottom: 4px;
+}
+.log-text-zh {
+  font-size: 13px;
+  color: var(--bright);
+  font-weight: 400;
+  line-height: 1.7;
+  letter-spacing: 0.03em;
+}
+.log-entry.type-death .log-text-zh { color: #e8aaaa; }
+.log-entry.type-system .log-text-zh { color: #d4b870; }
+.log-text-en {
+  font-family: var(--ff-mono);
+  font-size: 9px;
+  color: var(--muted);
+  margin-top: 3px;
+  letter-spacing: 0.05em;
+}
+.log-tag {
+  display: inline-block;
+  font-family: var(--ff-mono);
+  font-size: 8px;
+  letter-spacing: 0.15em;
+  padding: 1px 5px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+.tag-combat { background: rgba(139,0,0,0.3); color: var(--red-hot); }
+.tag-system { background: rgba(184,146,42,0.2); color: var(--gold-lt); }
+.tag-nature { background: rgba(20,50,20,0.4); color: #6aaa6a; }
+.tag-social { background: rgba(20,30,60,0.4); color: #7a9acc; }
+
+/* center panel bottom — typing bar */
+#typing-bar {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+  background: var(--black);
+  flex-shrink: 0;
+}
+.typing-label {
+  font-family: var(--ff-mono);
+  font-size: 9px;
+  color: var(--muted);
+  letter-spacing: 0.2em;
+  margin-bottom: 4px;
+}
+#typing-output {
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  color: var(--gold-lt);
+  letter-spacing: 0.05em;
+  min-height: 18px;
+}
+.cursor-blink {
+  display: inline-block;
+  width: 7px; height: 12px;
+  background: var(--gold-lt);
+  margin-left: 2px;
+  vertical-align: middle;
+  animation: blink 0.8s step-end infinite;
+}
+@keyframes blink { 0%,100%{ opacity:1; } 50%{ opacity:0; } }
+
+/* ─── RIGHT PANEL — STATUS ────────────────────────── */
+#panel-right { grid-column: 3; overflow-y: auto; }
+#panel-right::-webkit-scrollbar { width: 2px; }
+#panel-right::-webkit-scrollbar-thumb { background: var(--dim); }
+
+.status-section {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+.section-label {
+  font-family: var(--ff-mono);
+  font-size: 9px;
+  color: var(--muted);
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.stat-row {
+  display: flex; justify-content: space-between; align-items: baseline;
+  margin-bottom: 7px;
+}
+.stat-key {
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.05em;
+}
+.stat-val {
+  font-family: var(--ff-mono);
+  font-size: 12px;
+  color: var(--bright);
+}
+.stat-val.danger { color: var(--red-hot); text-shadow: 0 0 8px var(--red); }
+.stat-val.gold { color: var(--gold-lt); }
+
+/* threat meter */
+.threat-track {
+  height: 3px;
+  background: var(--dim);
+  margin-top: 4px;
+  position: relative;
+}
+.threat-fill {
+  position: absolute; left: 0; top: 0; bottom: 0;
+  background: linear-gradient(90deg, var(--gold), var(--red-hot));
+  transition: width 1s ease;
+}
+
+/* popularity chart */
+.popularity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.pop-row {
+  display: flex; align-items: center; gap: 6px;
+}
+.pop-name {
+  font-size: 10px;
+  color: var(--text);
+  width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.pop-track {
+  flex: 1;
+  height: 2px;
+  background: var(--dim);
+  position: relative;
+}
+.pop-fill {
+  position: absolute; left: 0; top: 0; bottom: 0;
+  background: var(--gold);
+  transition: width 1.2s ease;
+}
+.pop-val {
+  font-family: var(--ff-mono);
+  font-size: 8px;
+  color: var(--muted);
+  width: 28px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* district breakdown */
+.district-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+}
+.district-item {
+  padding: 6px 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  display: flex; flex-direction: column;
+}
+.district-num {
+  font-family: var(--ff-mono);
+  font-size: 8px;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+}
+.district-alive {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--bright);
+  margin-top: 2px;
+}
+.district-alive.zero { color: var(--red); opacity: 0.5; }
+
+/* sponsor feed */
+#sponsor-feed {
+  padding: 10px 16px;
+}
+.sponsor-entry {
+  font-size: 10px;
+  color: var(--muted);
+  padding: 5px 0;
+  border-bottom: 1px solid var(--line);
+  animation: entry-in 0.3s ease forwards;
+  opacity: 0;
+}
+.sponsor-entry span { color: var(--gold); }
+
+/* ─── QUOTE OVERLAY ───────────────────────────────── */
+#quote-overlay {
+  position: fixed; inset: 0; z-index: 500;
+  background: rgba(0,0,0,0.92);
+  display: flex; align-items: center; justify-content: center;
+  flex-direction: column;
+  text-align: center;
+  padding: 40px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.6s ease;
+}
+#quote-overlay.visible {
+  opacity: 1;
+  pointer-events: all;
+}
+.quote-label {
+  font-family: var(--ff-mono);
+  font-size: 9px;
+  color: var(--muted);
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  margin-bottom: 32px;
+}
+.quote-label::before, .quote-label::after {
+  content: ' ── ';
+  color: var(--dim);
+}
+.quote-en {
+  font-family: var(--ff-en);
+  font-size: 18px;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+  max-width: 600px;
+  margin-bottom: 24px;
+  font-style: italic;
+  line-height: 1.8;
+}
+.quote-zh {
+  font-family: var(--ff-zh);
+  font-weight: 900;
+  font-size: 26px;
+  color: var(--bright);
+  letter-spacing: 0.15em;
+  max-width: 580px;
+  line-height: 1.6;
+  margin-bottom: 40px;
+}
+.quote-source {
+  font-family: var(--ff-mono);
+  font-size: 9px;
+  color: var(--dim);
+  letter-spacing: 0.2em;
+}
+.quote-dismiss {
+  margin-top: 48px;
+  font-family: var(--ff-mono);
+  font-size: 9px;
+  color: var(--muted);
+  letter-spacing: 0.3em;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  padding: 8px 24px;
+  transition: all 0.2s;
+  text-transform: uppercase;
+  background: transparent;
+}
+.quote-dismiss:hover {
+  color: var(--bright);
+  border-color: var(--dim);
+}
+
+/* ─── BROADCAST BANNER ────────────────────────────── */
+#broadcast-banner {
+  position: fixed; top: 52px; left: 0; right: 0; z-index: 200;
+  background: rgba(139,0,0,0.95);
+  border-bottom: 1px solid var(--red-hot);
+  padding: 8px 24px;
+  display: flex; align-items: center; gap: 16px;
+  transform: translateY(-100%);
+  transition: transform 0.3s ease;
+}
+#broadcast-banner.visible { transform: translateY(0); }
+.broadcast-label {
+  font-family: var(--ff-mono);
+  font-size: 9px;
+  color: rgba(255,255,255,0.9);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+.broadcast-sep {
+  width: 1px; height: 16px;
+  background: rgba(255,255,255,0.2);
+}
+.broadcast-msg {
+  font-family: var(--ff-zh);
+  font-size: 12px;
+  color: rgba(255,255,255,0.9);
+  letter-spacing: 0.05em;
+}
+
+/* ─── CORNER DECORATION ───────────────────────────── */
+.corner-deco {
+  position: absolute;
+  width: 16px; height: 16px;
+  pointer-events: none;
+}
+.corner-deco.tl { top: 0; left: 0;
+  border-top: 1px solid var(--gold); border-left: 1px solid var(--gold); }
+.corner-deco.tr { top: 0; right: 0;
+  border-top: 1px solid var(--gold); border-right: 1px solid var(--gold); }
+.corner-deco.bl { bottom: 0; left: 0;
+  border-bottom: 1px solid var(--gold); border-left: 1px solid var(--gold); }
+.corner-deco.br { bottom: 0; right: 0;
+  border-bottom: 1px solid var(--gold); border-right: 1px solid var(--gold); }
+
+/* ─── GAME OVER SCREEN ────────────────────────────── */
+#game-over {
+  position: fixed; inset: 0; z-index: 800;
+  background: #000;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none;
+  transition: opacity 1s ease;
+  text-align: center;
+  padding: 40px;
+}
+#game-over.visible { opacity: 1; pointer-events: all; }
+.game-over-label {
+  font-family: var(--ff-mono);
+  font-size: 9px;
+  color: var(--muted);
+  letter-spacing: 0.5em;
+  margin-bottom: 40px;
+}
+.game-over-winner {
+  font-family: var(--ff-zh);
+  font-weight: 900;
+  font-size: 48px;
+  color: var(--gold-lt);
+  letter-spacing: 0.3em;
+  text-shadow: 0 0 40px rgba(184,146,42,0.5);
+  margin-bottom: 16px;
+  animation: gold-pulse 2s ease infinite;
+}
+@keyframes gold-pulse {
+  0%,100%{ text-shadow: 0 0 40px rgba(184,146,42,0.5); }
+  50%{ text-shadow: 0 0 80px rgba(184,146,42,0.9); }
+}
+.game-over-sub {
+  font-family: var(--ff-en);
+  font-size: 13px;
+  color: var(--muted);
+  letter-spacing: 0.3em;
+  margin-bottom: 24px;
+}
+
+/* End summary */
+#end-summary {
+  margin: 16px 0 32px;
+  font-family: var(--ff-mono);
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  display: flex;
+  gap: 32px;
+  justify-content: center;
+}
+.sum-item { text-align: center; }
+.sum-val {
+  font-size: 20px;
+  color: var(--gold-lt);
+  display: block;
+  margin-bottom: 4px;
+}
+.sum-label { font-size: 9px; letter-spacing: 0.2em; }
+
+.btn-restart {
+  font-family: var(--ff-mono);
+  font-size: 10px;
+  letter-spacing: 0.3em;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  padding: 12px 32px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-transform: uppercase;
+  margin-top: 16px;
+}
+.btn-restart:hover {
+  color: var(--bright);
+  border-color: var(--dim);
+}
+
+/* ─── CUSTOM TRIBUTE MODAL ────────────────────────── */
+#custom-modal {
+  position: fixed; inset: 0; z-index: 600;
+  background: rgba(0,0,0,0.92);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+#custom-modal.visible { opacity: 1; pointer-events: all; }
+.modal-box {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  padding: 32px;
+  max-width: 420px;
+  width: 90%;
+  position: relative;
+}
+.modal-box .corner-deco.tl,
+.modal-box .corner-deco.tr,
+.modal-box .corner-deco.bl,
+.modal-box .corner-deco.br { position: absolute; }
+.modal-title {
+  font-family: var(--ff-zh);
+  font-weight: 900;
+  font-size: 16px;
+  color: var(--bright);
+  letter-spacing: 0.2em;
+  margin-bottom: 6px;
+}
+.modal-sub {
+  font-family: var(--ff-mono);
+  font-size: 9px;
+  color: var(--muted);
+  letter-spacing: 0.2em;
+  margin-bottom: 24px;
+}
+.modal-field { margin-bottom: 16px; }
+.modal-field label {
+  display: block;
+  font-family: var(--ff-mono);
+  font-size: 9px;
+  color: var(--muted);
+  letter-spacing: 0.2em;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+.modal-field input, .modal-field select {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--bright);
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  padding: 8px 12px;
+  letter-spacing: 0.05em;
+  outline: none;
+  cursor: text;
+  transition: border-color 0.2s;
+}
+.modal-field input:focus, .modal-field select:focus {
+  border-color: var(--gold);
+}
+.modal-field select { cursor: pointer; }
+.modal-field select option { background: var(--black); }
+.modal-actions {
+  display: flex; gap: 8px; margin-top: 24px;
+}
+.btn-modal {
+  flex: 1;
+  font-family: var(--ff-mono);
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  padding: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-transform: uppercase;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+}
+.btn-modal:hover { color: var(--bright); border-color: var(--dim); }
+.btn-modal.primary {
+  border-color: var(--gold);
+  color: var(--gold-lt);
+  background: rgba(184,146,42,0.05);
+}
+.btn-modal.primary:hover { background: rgba(184,146,42,0.1); }
+
+/* ─── MOBILE TABS ─────────────────────────────────── */
+#mobile-tabs {
+  display: none;
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  z-index: 300;
+  background: var(--black);
+  border-top: 1px solid var(--border);
+  height: 52px;
+}
+.mobile-tab-bar {
+  display: flex;
+  height: 100%;
+}
+.mobile-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-family: var(--ff-mono);
+  font-size: 8px;
+  letter-spacing: 0.15em;
+  color: var(--muted);
+  border: none;
+  background: transparent;
+  transition: color 0.2s;
+  gap: 3px;
+  text-transform: uppercase;
+}
+.mobile-tab.active { color: var(--gold-lt); }
+.mobile-tab-icon { font-size: 16px; line-height: 1; }
+
+/* ─── SCROLLBAR ──────────────────────────────────── */
+* { scrollbar-width: thin; scrollbar-color: var(--dim) transparent; }
+
+/* ─── RESPONSIVE ─────────────────────────────────── */
+@media (max-width: 900px) {
+  body { overflow: hidden; }
   #app {
-    position: fixed; inset: 0;
-    padding-top: 52px;
-    display: grid;
-    grid-template-columns: 280px 1fr 240px;
+    grid-template-columns: 1fr;
     grid-template-rows: 1fr;
-    gap: 0;
-  }
-
-  /* ─── PANEL BASE ──────────────────────────────────── */
-  .panel {
-    background: var(--panel);
-    border-right: 1px solid var(--border);
-    display: flex; flex-direction: column;
-    overflow: hidden;
-    position: relative;
-  }
-  .panel:last-child { border-right: none; border-left: 1px solid var(--border); }
-  .panel-header {
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--border);
-    background: var(--black);
-    flex-shrink: 0;
-  }
-  .panel-label {
-    font-family: var(--ff-mono);
-    font-size: 9px;
-    color: var(--muted);
-    letter-spacing: 0.25em;
-    text-transform: uppercase;
-    margin-bottom: 2px;
-  }
-  .panel-title {
-    font-family: var(--ff-zh);
-    font-weight: 700;
-    font-size: 13px;
-    color: var(--bright);
-    letter-spacing: 0.1em;
-  }
-
-  /* ─── LEFT PANEL — TRIBUTES ───────────────────────── */
-  #panel-left { grid-column: 1; }
-  #tribute-list {
-    flex: 1;
-    overflow-y: auto;
-    padding: 8px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-  #tribute-list::-webkit-scrollbar { width: 2px; }
-  #tribute-list::-webkit-scrollbar-track { background: transparent; }
-  #tribute-list::-webkit-scrollbar-thumb { background: var(--dim); }
-
-  .tribute-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    padding: 10px 12px;
-    position: relative;
-    transition: border-color 0.2s, background 0.2s;
-    cursor: pointer;
-  }
-  .tribute-card::before {
-    content: '';
-    position: absolute; left: 0; top: 0; bottom: 0;
-    width: 2px;
-    background: var(--dim);
-    transition: background 0.2s;
-  }
-  .tribute-card:hover { background: #0e0e0e; border-color: var(--dim); }
-  .tribute-card:hover::before { background: var(--gold); }
-  .tribute-card.eliminated {
-    opacity: 0.35;
-  }
-  .tribute-card.eliminated::before { background: var(--red) !important; }
-
-  .tribute-name {
-    font-weight: 700;
-    font-size: 13px;
-    color: var(--bright);
-    letter-spacing: 0.05em;
-    margin-bottom: 2px;
-  }
-  .tribute-card.eliminated .tribute-name { color: var(--muted); }
-  .tribute-district {
-    font-family: var(--ff-mono);
-    font-size: 9px;
-    color: var(--muted);
-    letter-spacing: 0.2em;
-    margin-bottom: 6px;
-  }
-  .tribute-stats {
-    display: flex; gap: 8px; flex-wrap: wrap;
-  }
-  .stat-bar {
-    flex: 1; min-width: 60px;
-  }
-  .stat-label {
-    font-family: var(--ff-mono);
-    font-size: 8px;
-    color: var(--muted);
-    letter-spacing: 0.1em;
-    margin-bottom: 3px;
-  }
-  .bar-track {
-    height: 2px;
-    background: var(--dim);
-    position: relative;
-  }
-  .bar-fill {
-    position: absolute; left: 0; top: 0; bottom: 0;
-    background: var(--gold);
-    transition: width 0.8s ease;
-  }
-  .tribute-card.eliminated .bar-fill { background: var(--red); }
-
-  .tribute-status {
-    position: absolute; top: 10px; right: 10px;
-    font-family: var(--ff-mono);
-    font-size: 8px;
-    letter-spacing: 0.15em;
-  }
-  .status-alive { color: #4a9a4a; }
-  .status-dead {
-    color: var(--red-hot);
-    text-shadow: 0 0 8px var(--red);
-  }
-
-  /* ─── CENTER PANEL — EVENT LOG ────────────────────── */
-  #panel-center {
-    grid-column: 2;
-    background: var(--black);
-    border-right: 1px solid var(--border);
-    border-left: 1px solid var(--border);
-  }
-  #panel-center .panel-header {
-    display: flex; align-items: center; justify-content: space-between;
-  }
-  .log-controls {
-    display: flex; gap: 8px; align-items: center;
-  }
-  .btn-control {
-    font-family: var(--ff-mono);
-    font-size: 9px;
-    letter-spacing: 0.15em;
-    color: var(--muted);
-    background: transparent;
-    border: 1px solid var(--border);
-    padding: 4px 10px;
-    cursor: pointer;
-    transition: all 0.15s;
-    text-transform: uppercase;
-  }
-  .btn-control:hover {
-    color: var(--bright);
-    border-color: var(--dim);
-    background: var(--surface);
-  }
-  .btn-control.active {
-    color: var(--gold);
-    border-color: var(--gold);
-  }
-
-  #event-log {
-    flex: 1;
-    overflow-y: auto;
-    padding: 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-  #event-log::-webkit-scrollbar { width: 2px; }
-  #event-log::-webkit-scrollbar-thumb { background: var(--dim); }
-
-  .log-entry {
-    padding: 10px 14px;
-    border-left: 1px solid var(--dim);
-    background: transparent;
-    animation: entry-in 0.4s ease forwards;
-    opacity: 0;
-    position: relative;
-  }
-  @keyframes entry-in {
-    from { opacity: 0; transform: translateY(6px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-  .log-entry:hover { background: rgba(255,255,255,0.015); }
-
-  .log-entry.type-death {
-    border-left-color: var(--red);
-    background: rgba(139,0,0,0.06);
-    animation: entry-in 0.4s ease forwards, death-flash 0.6s ease;
-  }
-  @keyframes death-flash {
-    0%{ background: rgba(139,0,0,0.25); }
-    100%{ background: rgba(139,0,0,0.06); }
-  }
-  .log-entry.type-alliance { border-left-color: #1a3a1a; }
-  .log-entry.type-system {
-    border-left-color: var(--gold);
-    background: rgba(184,146,42,0.04);
-  }
-  .log-entry.type-hazard { border-left-color: #3a2800; }
-
-  .log-time {
-    font-family: var(--ff-mono);
-    font-size: 9px;
-    color: var(--muted);
-    letter-spacing: 0.1em;
-    margin-bottom: 4px;
-  }
-  .log-text-zh {
-    font-size: 13px;
-    color: var(--bright);
-    font-weight: 400;
-    line-height: 1.7;
-    letter-spacing: 0.03em;
-  }
-  .log-entry.type-death .log-text-zh { color: #e8aaaa; }
-  .log-entry.type-system .log-text-zh { color: #d4b870; }
-  .log-text-en {
-    font-family: var(--ff-mono);
-    font-size: 9px;
-    color: var(--muted);
-    margin-top: 3px;
-    letter-spacing: 0.05em;
-  }
-  .log-tag {
-    display: inline-block;
-    font-family: var(--ff-mono);
-    font-size: 8px;
-    letter-spacing: 0.15em;
-    padding: 1px 5px;
-    margin-right: 6px;
-    vertical-align: middle;
-  }
-  .tag-combat { background: rgba(139,0,0,0.3); color: var(--red-hot); }
-  .tag-system { background: rgba(184,146,42,0.2); color: var(--gold-lt); }
-  .tag-nature { background: rgba(20,50,20,0.4); color: #6aaa6a; }
-  .tag-social { background: rgba(20,30,60,0.4); color: #7a9acc; }
-
-  /* center panel bottom — typing bar */
-  #typing-bar {
-    padding: 12px 16px;
-    border-top: 1px solid var(--border);
-    background: var(--black);
-    flex-shrink: 0;
-  }
-  .typing-label {
-    font-family: var(--ff-mono);
-    font-size: 9px;
-    color: var(--muted);
-    letter-spacing: 0.2em;
-    margin-bottom: 4px;
-  }
-  #typing-output {
-    font-family: var(--ff-mono);
-    font-size: 11px;
-    color: var(--gold-lt);
-    letter-spacing: 0.05em;
-    min-height: 18px;
-  }
-  .cursor-blink {
-    display: inline-block;
-    width: 7px; height: 12px;
-    background: var(--gold-lt);
-    margin-left: 2px;
-    vertical-align: middle;
-    animation: blink 0.8s step-end infinite;
-  }
-  @keyframes blink { 0%,100%{ opacity:1; } 50%{ opacity:0; } }
-
-  /* ─── RIGHT PANEL — STATUS ────────────────────────── */
-  #panel-right { grid-column: 3; }
-  .status-section {
-    padding: 14px 16px;
-    border-bottom: 1px solid var(--line);
-  }
-  .section-label {
-    font-family: var(--ff-mono);
-    font-size: 9px;
-    color: var(--muted);
-    letter-spacing: 0.25em;
-    text-transform: uppercase;
-    margin-bottom: 10px;
-  }
-  .stat-row {
-    display: flex; justify-content: space-between; align-items: baseline;
-    margin-bottom: 7px;
-  }
-  .stat-key {
-    font-size: 11px;
-    color: var(--muted);
-    letter-spacing: 0.05em;
-  }
-  .stat-val {
-    font-family: var(--ff-mono);
-    font-size: 12px;
-    color: var(--bright);
-  }
-  .stat-val.danger { color: var(--red-hot); text-shadow: 0 0 8px var(--red); }
-  .stat-val.gold { color: var(--gold-lt); }
-
-  /* threat meter */
-  .threat-track {
-    height: 3px;
-    background: var(--dim);
-    margin-top: 4px;
-    position: relative;
-  }
-  .threat-fill {
-    position: absolute; left: 0; top: 0; bottom: 0;
-    background: linear-gradient(90deg, var(--gold), var(--red-hot));
-    transition: width 1s ease;
-  }
-
-  /* district breakdown */
-  .district-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 5px;
-  }
-  .district-item {
-    padding: 6px 8px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    display: flex; flex-direction: column;
-  }
-  .district-num {
-    font-family: var(--ff-mono);
-    font-size: 8px;
-    color: var(--muted);
-    letter-spacing: 0.1em;
-  }
-  .district-alive {
-    font-size: 11px;
-    font-weight: 700;
-    color: var(--bright);
-    margin-top: 2px;
-  }
-  .district-alive.zero { color: var(--red); opacity: 0.5; }
-
-  /* sponsor feed */
-  #sponsor-feed {
-    flex: 1;
-    overflow-y: auto;
-    padding: 10px 16px;
-  }
-  #sponsor-feed::-webkit-scrollbar { width: 2px; }
-  #sponsor-feed::-webkit-scrollbar-thumb { background: var(--dim); }
-  .sponsor-entry {
-    font-size: 10px;
-    color: var(--muted);
-    padding: 5px 0;
-    border-bottom: 1px solid var(--line);
-    animation: entry-in 0.3s ease forwards;
-    opacity: 0;
-  }
-  .sponsor-entry span { color: var(--gold); }
-
-  /* ─── QUOTE OVERLAY ───────────────────────────────── */
-  #quote-overlay {
-    position: fixed; inset: 0; z-index: 500;
-    background: rgba(0,0,0,0.92);
-    display: flex; align-items: center; justify-content: center;
-    flex-direction: column;
-    text-align: center;
-    padding: 40px;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.6s ease;
-  }
-  #quote-overlay.visible {
-    opacity: 1;
-    pointer-events: all;
-  }
-  .quote-label {
-    font-family: var(--ff-mono);
-    font-size: 9px;
-    color: var(--muted);
-    letter-spacing: 0.4em;
-    text-transform: uppercase;
-    margin-bottom: 32px;
-  }
-  .quote-label::before, .quote-label::after {
-    content: ' ── ';
-    color: var(--dim);
-  }
-  .quote-en {
-    font-family: var(--ff-en);
-    font-size: 18px;
-    color: var(--muted);
-    letter-spacing: 0.08em;
-    max-width: 600px;
-    margin-bottom: 24px;
-    font-style: italic;
-    line-height: 1.8;
-  }
-  .quote-zh {
-    font-family: var(--ff-zh);
-    font-weight: 900;
-    font-size: 26px;
-    color: var(--bright);
-    letter-spacing: 0.15em;
-    max-width: 580px;
-    line-height: 1.6;
-    margin-bottom: 40px;
-  }
-  .quote-source {
-    font-family: var(--ff-mono);
-    font-size: 9px;
-    color: var(--dim);
-    letter-spacing: 0.2em;
-  }
-  .quote-dismiss {
-    margin-top: 48px;
-    font-family: var(--ff-mono);
-    font-size: 9px;
-    color: var(--muted);
-    letter-spacing: 0.3em;
-    cursor: pointer;
-    border: 1px solid var(--border);
-    padding: 8px 24px;
-    transition: all 0.2s;
-    text-transform: uppercase;
-    background: transparent;
-  }
-  .quote-dismiss:hover {
-    color: var(--bright);
-    border-color: var(--dim);
-  }
-
-  /* ─── BROADCAST BANNER ────────────────────────────── */
-  #broadcast-banner {
-    position: fixed; top: 52px; left: 0; right: 0; z-index: 200;
-    background: rgba(139,0,0,0.95);
-    border-bottom: 1px solid var(--red-hot);
-    padding: 8px 24px;
-    display: flex; align-items: center; gap: 16px;
-    transform: translateY(-100%);
-    transition: transform 0.3s ease;
-  }
-  #broadcast-banner.visible { transform: translateY(0); }
-  .broadcast-label {
-    font-family: var(--ff-mono);
-    font-size: 9px;
-    color: rgba(255,255,255,0.9);
-    letter-spacing: 0.3em;
-    text-transform: uppercase;
-    flex-shrink: 0;
-  }
-  .broadcast-sep {
-    width: 1px; height: 16px;
-    background: rgba(255,255,255,0.2);
-  }
-  .broadcast-msg {
-    font-family: var(--ff-zh);
-    font-size: 12px;
-    color: rgba(255,255,255,0.9);
-    letter-spacing: 0.05em;
-  }
-
-  /* ─── CORNER DECORATION ───────────────────────────── */
-  .corner-deco {
-    position: absolute;
-    width: 16px; height: 16px;
-    pointer-events: none;
-  }
-  .corner-deco.tl { top: 0; left: 0;
-    border-top: 1px solid var(--gold); border-left: 1px solid var(--gold); }
-  .corner-deco.tr { top: 0; right: 0;
-    border-top: 1px solid var(--gold); border-right: 1px solid var(--gold); }
-  .corner-deco.bl { bottom: 0; left: 0;
-    border-bottom: 1px solid var(--gold); border-left: 1px solid var(--gold); }
-  .corner-deco.br { bottom: 0; right: 0;
-    border-bottom: 1px solid var(--gold); border-right: 1px solid var(--gold); }
-
-  /* ─── GAME OVER SCREEN ────────────────────────────── */
-  #game-over {
-    position: fixed; inset: 0; z-index: 800;
-    background: #000;
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    opacity: 0; pointer-events: none;
-    transition: opacity 1s ease;
-    text-align: center;
-    padding: 40px;
-  }
-  #game-over.visible { opacity: 1; pointer-events: all; }
-  .game-over-label {
-    font-family: var(--ff-mono);
-    font-size: 9px;
-    color: var(--muted);
-    letter-spacing: 0.5em;
-    margin-bottom: 40px;
-  }
-  .game-over-winner {
-    font-family: var(--ff-zh);
-    font-weight: 900;
-    font-size: 48px;
-    color: var(--gold-lt);
-    letter-spacing: 0.3em;
-    text-shadow: 0 0 40px rgba(184,146,42,0.5);
-    margin-bottom: 16px;
-    animation: gold-pulse 2s ease infinite;
-  }
-  @keyframes gold-pulse {
-    0%,100%{ text-shadow: 0 0 40px rgba(184,146,42,0.5); }
-    50%{ text-shadow: 0 0 80px rgba(184,146,42,0.9); }
-  }
-  .game-over-sub {
-    font-family: var(--ff-en);
-    font-size: 13px;
-    color: var(--muted);
-    letter-spacing: 0.3em;
-    margin-bottom: 60px;
-  }
-  .btn-restart {
-    font-family: var(--ff-mono);
-    font-size: 10px;
-    letter-spacing: 0.3em;
-    color: var(--muted);
-    background: transparent;
-    border: 1px solid var(--border);
-    padding: 12px 32px;
-    cursor: pointer;
-    transition: all 0.2s;
-    text-transform: uppercase;
-    margin-top: 40px;
-  }
-  .btn-restart:hover {
-    color: var(--bright);
-    border-color: var(--dim);
-  }
-
-  /* ─── SCROLLBAR HIDE ──────────────────────────────── */
-  * { scrollbar-width: thin; scrollbar-color: var(--dim) transparent; }
+    padding-bottom: 52px;
+  }
+  .panel { display: none; }
+  .panel.mobile-active { display: flex; grid-column: 1; grid-row: 1; }
+  #mobile-tabs { display: block; }
+  #header .sys-id { display: none; }
+  #header { padding: 0 14px; }
+  #header .title-zh { font-size: 12px; letter-spacing: 0.2em; }
+}
+@media (max-width: 600px) {
+  .quote-en { font-size: 14px; }
+  .quote-zh { font-size: 20px; }
+  .game-over-winner { font-size: 32px; }
+  #end-summary { gap: 20px; }
+}
 </style>
 </head>
 <body>
+
+<div id="death-flash"></div>
 
 <!-- HEADER -->
 <header id="header">
@@ -686,7 +966,7 @@
 <div id="app">
 
   <!-- LEFT: TRIBUTES -->
-  <div class="panel" id="panel-left">
+  <div class="panel mobile-active" id="panel-left">
     <div class="panel-header">
       <div class="panel-label">TRIBUTE MODULE // ACTIVE</div>
       <div class="panel-title">貢品管理系統</div>
@@ -702,15 +982,26 @@
         <div class="panel-title">即時事件記錄</div>
       </div>
       <div class="log-controls">
-        <button class="btn-control active" id="btn-auto">自動</button>
-        <button class="btn-control" id="btn-pause">暫停</button>
-        <button class="btn-control" id="btn-quote">語錄</button>
+        <div class="speed-indicator" id="speed-label">1×</div>
+        <button class="btn-control" id="btn-slower" aria-label="減速">◀◀</button>
+        <button class="btn-control active" id="btn-auto" aria-label="自動播放">自動</button>
+        <button class="btn-control" id="btn-pause" aria-label="暫停">暫停</button>
+        <button class="btn-control" id="btn-faster" aria-label="加速">▶▶</button>
+        <button class="btn-control danger-btn" id="btn-trigger" aria-label="立即觸發事件">觸發</button>
+        <button class="btn-control" id="btn-quote" aria-label="顯示語錄">語錄</button>
       </div>
     </div>
-    <div id="event-log"></div>
+    <div id="filter-bar">
+      <button class="filter-btn active" data-filter="all">全部</button>
+      <button class="filter-btn f-combat" data-filter="combat">戰鬥</button>
+      <button class="filter-btn f-nature" data-filter="nature">環境</button>
+      <button class="filter-btn f-social" data-filter="social">社交</button>
+      <button class="filter-btn f-system" data-filter="system">系統</button>
+    </div>
+    <div id="event-log" role="log" aria-live="polite" aria-label="事件記錄"></div>
     <div id="typing-bar">
       <div class="typing-label">// SYSTEM PROCESSING</div>
-      <div id="typing-output"><span class="cursor-blink"></span></div>
+      <div id="typing-output" aria-live="off"><span class="cursor-blink"></span></div>
     </div>
   </div>
 
@@ -745,6 +1036,11 @@
     </div>
 
     <div class="status-section">
+      <div class="section-label">// 觀眾支持度排行</div>
+      <div class="popularity-list" id="popularity-list"></div>
+    </div>
+
+    <div class="status-section">
       <div class="section-label">// 各區存活</div>
       <div class="district-grid" id="district-grid"></div>
     </div>
@@ -756,8 +1052,26 @@
   </div>
 </div>
 
+<!-- MOBILE TABS -->
+<nav id="mobile-tabs" aria-label="面板切換">
+  <div class="mobile-tab-bar">
+    <button class="mobile-tab active" data-panel="panel-left" aria-label="貢品列表">
+      <span class="mobile-tab-icon">⚔</span>
+      <span>貢品</span>
+    </button>
+    <button class="mobile-tab" data-panel="panel-center" aria-label="事件記錄">
+      <span class="mobile-tab-icon">📡</span>
+      <span>事件</span>
+    </button>
+    <button class="mobile-tab" data-panel="panel-right" aria-label="狀態面板">
+      <span class="mobile-tab-icon">◈</span>
+      <span>狀態</span>
+    </button>
+  </div>
+</nav>
+
 <!-- QUOTE OVERLAY -->
-<div id="quote-overlay">
+<div id="quote-overlay" role="dialog" aria-modal="true" aria-label="系統廣播語錄">
   <div class="corner-deco tl"></div>
   <div class="corner-deco tr"></div>
   <div class="corner-deco bl"></div>
@@ -769,11 +1083,53 @@
   <button class="quote-dismiss" id="quote-dismiss">確認 // ACKNOWLEDGE</button>
 </div>
 
+<!-- CUSTOM TRIBUTE MODAL -->
+<div id="custom-modal" role="dialog" aria-modal="true" aria-label="自訂貢品">
+  <div class="modal-box">
+    <div class="corner-deco tl"></div>
+    <div class="corner-deco tr"></div>
+    <div class="corner-deco bl"></div>
+    <div class="corner-deco br"></div>
+    <div class="modal-title">加入競技場</div>
+    <div class="modal-sub">// ENTER TRIBUTE REGISTRATION // HG-74</div>
+    <div class="modal-field">
+      <label for="custom-name">貢品姓名（中文）</label>
+      <input type="text" id="custom-name" maxlength="12" placeholder="你的名字" autocomplete="off" />
+    </div>
+    <div class="modal-field">
+      <label for="custom-district">所屬區</label>
+      <select id="custom-district">
+        <option value="1">第 1 區（奢侈品）</option>
+        <option value="2">第 2 區（採石 / 武器）</option>
+        <option value="3">第 3 區（科技）</option>
+        <option value="4">第 4 區（漁業）</option>
+        <option value="5">第 5 區（能源）</option>
+        <option value="6">第 6 區（交通）</option>
+        <option value="7">第 7 區（木材）</option>
+        <option value="8">第 8 區（紡織）</option>
+        <option value="9">第 9 區（穀物）</option>
+        <option value="10">第 10 區（畜牧）</option>
+        <option value="11" selected>第 11 區（農業）</option>
+        <option value="12">第 12 區（礦業）</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-modal" id="btn-skip-custom">略過</button>
+      <button class="btn-modal primary" id="btn-confirm-custom">加入遊戲</button>
+    </div>
+  </div>
+</div>
+
 <!-- GAME OVER -->
-<div id="game-over">
+<div id="game-over" role="dialog" aria-modal="true" aria-label="遊戲結束">
   <div class="game-over-label">// 第 74 屆飢餓遊戲 // 競技結束 //</div>
   <div class="game-over-winner" id="winner-name"></div>
   <div class="game-over-sub" id="winner-district"></div>
+  <div id="end-summary">
+    <div class="sum-item"><span class="sum-val" id="go-days">—</span><span class="sum-label">競技天數</span></div>
+    <div class="sum-item"><span class="sum-val" id="go-events">—</span><span class="sum-label">總事件數</span></div>
+    <div class="sum-item"><span class="sum-val" id="go-dead">—</span><span class="sum-label">淘汰人數</span></div>
+  </div>
   <div class="quote-en" style="max-width:500px; font-size:14px;" id="go-quote-en"></div>
   <div class="quote-zh" style="font-size:20px;" id="go-quote-zh"></div>
   <button class="btn-restart" id="btn-restart">重新開始 // RESTART SIMULATION</button>
@@ -781,7 +1137,7 @@
 
 <script>
 // ══════════════════════════════════════════════════════
-//  DATA
+//  DATA — 24 TRIBUTES (full roster)
 // ══════════════════════════════════════════════════════
 const TRIBUTES_INIT = [
   { id:1,  name:'凱特尼斯·艾佛丁', nameEn:'Katniss Everdeen',   district:12, gender:'F', strength:92, speed:88, survival:95 },
@@ -792,99 +1148,165 @@ const TRIBUTES_INIT = [
   { id:6,  name:'魯',              nameEn:'Rue',                 district:11, gender:'F', strength:45, speed:96, survival:70 },
   { id:7,  name:'思里許',          nameEn:'Thresh',              district:11, gender:'M', strength:96, speed:72, survival:75 },
   { id:8,  name:'葛雷塞迪',        nameEn:'Glimmer',             district:1,  gender:'F', strength:78, speed:80, survival:72 },
-    { id:9,  name:'馬維爾',          nameEn:'Marvel',              district:1,  gender:'M', strength:80, speed:78, survival:70 },
+  { id:9,  name:'馬維爾',          nameEn:'Marvel',              district:1,  gender:'M', strength:80, speed:78, survival:70 },
   { id:10, name:'福克斯菲斯',      nameEn:'Foxface',             district:5,  gender:'F', strength:40, speed:94, survival:85 },
   { id:11, name:'傑卡',            nameEn:'Jacqueline',          district:3,  gender:'F', strength:55, speed:60, survival:65 },
   { id:12, name:'史緹芬',          nameEn:'Stefan',              district:6,  gender:'M', strength:60, speed:55, survival:58 },
+  { id:13, name:'葛洛莉婭',        nameEn:'Gloria',              district:1,  gender:'F', strength:75, speed:82, survival:68 },
+  { id:14, name:'布魯特斯',        nameEn:'Brutus',              district:2,  gender:'M', strength:93, speed:70, survival:77 },
+  { id:15, name:'艾諾比亞',        nameEn:'Enobaria',            district:2,  gender:'F', strength:87, speed:88, survival:79 },
+  { id:16, name:'莫克斯',          nameEn:'Mags',                district:4,  gender:'F', strength:30, speed:40, survival:92 },
+  { id:17, name:'雷斯坦',          nameEn:'Leestan',             district:3,  gender:'M', strength:52, speed:58, survival:60 },
+  { id:18, name:'陶里',            nameEn:'Tori',                district:6,  gender:'F', strength:48, speed:62, survival:55 },
+  { id:19, name:'西林',            nameEn:'Silan',               district:7,  gender:'M', strength:65, speed:70, survival:63 },
+  { id:20, name:'費茲',            nameEn:'Phiz',                district:8,  gender:'M', strength:58, speed:63, survival:57 },
+  { id:21, name:'拉薇尼亞',        nameEn:'Lavinia',             district:9,  gender:'F', strength:50, speed:68, survival:61 },
+  { id:22, name:'柯迪',            nameEn:'Cody',                district:10, gender:'M', strength:62, speed:66, survival:59 },
+  { id:23, name:'瑪洛',            nameEn:'Maro',                district:7,  gender:'F', strength:55, speed:72, survival:64 },
+  { id:24, name:'艾登',            nameEn:'Aiden',               district:9,  gender:'M', strength:60, speed:64, survival:62 },
 ];
 
 const QUOTES = [
-  {
-    en: "May the odds be ever in your favor.",
-    zh: "願機率永遠站在你這邊。",
-    src: "— 艾菲·吹客 · 第 74 屆飢餓遊戲"
-  },
-  {
-    en: "Fire is catching! And if we burn, you burn with us!",
-    zh: "火正在蔓延！若我們燃燒，你們也將一同燃燒！",
-    src: "— 凱特尼斯·艾佛丁"
-  },
-  {
-    en: "Hope is the only thing stronger than fear.",
-    zh: "希望，是唯一比恐懼更強大的力量。",
-    src: "— 柯利歐雷斯·斯諾總統"
-  },
-  {
-    en: "Happy Hunger Games! And may the odds be ever in your favor.",
-    zh: "飢餓遊戲快樂！願機率永遠站在你這邊。",
-    src: "— 艾菲·吹客"
-  },
-  {
-    en: "I am not pretty. I am not beautiful. I am as radiant as the sun.",
-    zh: "我並不美麗。但我如太陽般光芒萬丈。",
-    src: "— 凱特尼斯·艾佛丁"
-  },
-  {
-    en: "Real or not real?",
-    zh: "真實，還是虛假？",
-    src: "— 比塔·梅拉克"
-  },
-  {
-    en: "I want to die as myself.",
-    zh: "我想以自己的身分死去。",
-    src: "— 比塔·梅拉克"
-  },
+  { en:"May the odds be ever in your favor.", zh:"願機率永遠站在你這邊。", src:"— 艾菲·吹客 · 第 74 屆飢餓遊戲" },
+  { en:"Fire is catching! And if we burn, you burn with us!", zh:"火正在蔓延！若我們燃燒，你們也將一同燃燒！", src:"— 凱特尼斯·艾佛丁" },
+  { en:"Hope is the only thing stronger than fear.", zh:"希望，是唯一比恐懼更強大的力量。", src:"— 柯利歐雷斯·斯諾總統" },
+  { en:"Happy Hunger Games! And may the odds be ever in your favor.", zh:"飢餓遊戲快樂！願機率永遠站在你這邊。", src:"— 艾菲·吹客" },
+  { en:"I am not pretty. I am not beautiful. I am as radiant as the sun.", zh:"我並不美麗。但我如太陽般光芒萬丈。", src:"— 凱特尼斯·艾佛丁" },
+  { en:"Real or not real?", zh:"真實，還是虛假？", src:"— 比塔·梅拉克" },
+  { en:"I want to die as myself.", zh:"我想以自己的身分死去。", src:"— 比塔·梅拉克" },
+  { en:"Destroying things is much easier than making them.", zh:"毀滅，永遠比創造容易得多。", src:"— 凱特尼斯·艾佛丁" },
 ];
 
 const EVENTS = {
   combat: [
-    { zh: '{A} 在血腥角（Cornucopia）向 {B} 發動突襲，{B} 重傷撤退。', en: '{A} ambushes {B} at the Cornucopia. {B} retreats, critically wounded.', tag:'combat' },
-    { zh: '{A} 使用長矛刺穿 {B} 的防線，{B} 遭到淘汰。', en: '{A} pierces {B}\'s defenses with a spear. {B} is eliminated.', tag:'combat', kills:true },
-    { zh: '{A} 與 {B} 展開近身格鬥，雙方均受到中度傷害。', en: '{A} and {B} engage in close combat. Both sustain moderate injuries.', tag:'combat' },
-    { zh: '{A} 從高處伏擊 {B}，{B} 墜落受重傷。', en: '{A} ambushes {B} from elevation. {B} sustains critical fall damage.', tag:'combat' },
-    { zh: '{A} 用弓箭精準擊中 {B}，{B} 已被淘汰。', en: '{A} lands a precise arrow strike on {B}. {B} is eliminated.', tag:'combat', kills:true },
+    { zh:'{A} 在血腥角向 {B} 發動突襲，{B} 重傷撤退。',    en:'{A} ambushes {B} at the Cornucopia. {B} retreats critically wounded.',    tag:'combat' },
+    { zh:'{A} 使用長矛刺穿 {B} 的防線，{B} 已被淘汰。',   en:'{A} pierces {B}\'s defenses with a spear. {B} is eliminated.',          tag:'combat', kills:true },
+    { zh:'{A} 與 {B} 展開近身格鬥，雙方均受到中度傷害。',  en:'{A} and {B} engage in close combat. Both sustain moderate injuries.',    tag:'combat' },
+    { zh:'{A} 從高處伏擊 {B}，{B} 墜落受重傷。',          en:'{A} ambushes {B} from elevation. {B} sustains critical fall damage.',    tag:'combat' },
+    { zh:'{A} 用弓箭精準擊中 {B}，{B} 已被淘汰。',        en:'{A} lands a precise arrow strike on {B}. {B} is eliminated.',          tag:'combat', kills:true },
+    { zh:'{A} 設下陷阱捕捉 {B}，{B} 無法動彈。',          en:'{A} sets a trap and captures {B}. {B} is immobilized.',                tag:'combat' },
+    { zh:'{A} 向 {B} 投擲飛刀，{B} 受傷逃離。',           en:'{A} hurls a throwing knife at {B}. {B} escapes wounded.',               tag:'combat' },
+    { zh:'{A} 趁夜偷襲 {B} 的營地，{B} 已被淘汰。',       en:'{A} raids {B}\'s camp under cover of darkness. {B} is eliminated.',     tag:'combat', kills:true },
   ],
   alliance: [
-    { zh: '{A} 向 {B} 提出結盟協議，雙方暫時達成協定。', en: '{A} proposes an alliance to {B}. A temporary pact is formed.', tag:'social' },
-    { zh: '{A} 背叛盟友 {B}，趁其熟睡時奪取補給品。', en: '{A} betrays ally {B}, stealing supplies during sleep.', tag:'social' },
-    { zh: '{A} 與 {B} 共享食物，鞏固聯盟關係。', en: '{A} shares rations with {B}, reinforcing their alliance.', tag:'social' },
-    { zh: '{A} 發現 {B} 已背叛聯盟，立即解除協議。', en: '{A} discovers {B}\'s betrayal and dissolves the alliance.', tag:'social' },
+    { zh:'{A} 向 {B} 提出結盟協議，雙方暫時達成協定。',    en:'{A} proposes an alliance to {B}. A temporary pact is formed.',         tag:'social' },
+    { zh:'{A} 背叛盟友 {B}，趁其熟睡時奪取補給品。',      en:'{A} betrays ally {B}, stealing supplies during sleep.',                tag:'social' },
+    { zh:'{A} 與 {B} 共享食物，鞏固聯盟關係。',            en:'{A} shares rations with {B}, reinforcing their alliance.',             tag:'social' },
+    { zh:'{A} 發現 {B} 已背叛聯盟，立即解除協議。',        en:'{A} discovers {B}\'s betrayal and dissolves the alliance.',            tag:'social' },
+    { zh:'{A} 為 {B} 療傷，建立了深厚的信任。',            en:'{A} tends to {B}\'s wounds, building deep mutual trust.',              tag:'social' },
   ],
   hazard: [
-    { zh: '競技場東區突然爆發蟲雲攻擊，多名貢品被迫轉移。', en: 'Tracker jacker swarm erupts in the eastern sector. Multiple tributes forced to relocate.', tag:'nature' },
-    { zh: '都城觸發競技場火焰機關，逼迫貢品向中心移動。', en: 'Capitol activates arena fire mechanism, driving tributes toward the center.', tag:'nature' },
-    { zh: '有毒漿果區域擴大，{A} 差點誤食。', en: 'Poisonous berry zone expands. {A} narrowly avoids ingestion.', tag:'nature' },
-    { zh: '夜間氣溫驟降，部分貢品因低溫症受到傷害。', en: 'Overnight temperature plummets. Several tributes suffer hypothermia damage.', tag:'nature' },
-    { zh: '競技場北部發生山崩，封鎖逃生路線。', en: 'Landslide in northern sector. Escape routes sealed.', tag:'nature' },
-    { zh: '突變狼群從森林邊緣逼近，貢品們陷入恐慌。', en: 'Mutant wolf pack closes in from the forest perimeter. Tributes in disarray.', tag:'nature' },
+    { zh:'競技場東區突然爆發蟲雲攻擊，多名貢品被迫轉移。',  en:'Tracker jacker swarm erupts in the eastern sector. Tributes forced to relocate.', tag:'nature' },
+    { zh:'都城觸發競技場火焰機關，逼迫貢品向中心移動。',    en:'Capitol activates arena fire mechanism, driving tributes toward center.',         tag:'nature' },
+    { zh:'有毒漿果區域擴大，{A} 差點誤食。',               en:'Poisonous berry zone expands. {A} narrowly avoids ingestion.',                   tag:'nature' },
+    { zh:'夜間氣溫驟降，部分貢品因低溫症受到傷害。',        en:'Overnight temperature plummets. Several tributes suffer hypothermia damage.',     tag:'nature' },
+    { zh:'競技場北部發生山崩，封鎖逃生路線。',              en:'Landslide in northern sector. Escape routes sealed.',                            tag:'nature' },
+    { zh:'突變狼群從森林邊緣逼近，貢品們陷入恐慌。',        en:'Mutant wolf pack closes in from the forest perimeter. Tributes in disarray.',    tag:'nature' },
+    { zh:'競技場中央水源遭都城污染，貢品被迫另覓水源。',    en:'Capitol poisons central water supply. Tributes forced to find alternatives.',    tag:'nature' },
+    { zh:'血紅霧氣從低窪地帶升起，{A} 緊急撤離。',         en:'Blood-red fog rises from the lowlands. {A} evacuates urgently.',                tag:'nature' },
   ],
   system: [
-    { zh: '都城廣播：請各位貢品注意競技場最新規則更新。', en: 'Capitol announcement: All tributes are advised of updated arena regulations.', tag:'system' },
-    { zh: '砲聲響起，確認第 {N} 名貢品已被淘汰。', en: 'Cannon confirms tribute #{N} elimination.', tag:'system' },
-    { zh: '贊助商禮包已投放至第 {D} 區代表貢品位置。', en: 'Sponsor package delivered to District {D} tribute location.', tag:'system' },
-    { zh: '競技場規則臨時修正：允許同區貢品共同勝出。', en: 'Rule amendment: Joint victory permitted for tributes from the same district.', tag:'system' },
+    { zh:'都城廣播：請各位貢品注意競技場最新規則更新。',     en:'Capitol announcement: All tributes advised of updated arena regulations.',  tag:'system' },
+    { zh:'砲聲響起，確認第 {N} 名貢品已被淘汰。',           en:'Cannon confirms tribute #{N} elimination.',                               tag:'system' },
+    { zh:'贊助商禮包已投放至第 {D} 區代表貢品位置。',       en:'Sponsor package delivered to District {D} tribute location.',             tag:'system' },
+    { zh:'競技場規則臨時修正：允許同區貢品共同勝出。',       en:'Rule amendment: Joint victory permitted for tributes from same district.', tag:'system' },
+    { zh:'都城宣布：今夜將縮小競技場安全區域。',            en:'Capitol declares: Safe zone will shrink at midnight.',                     tag:'system' },
+    { zh:'第 {D} 區贊助商投入大量資金支持本區貢品。',       en:'District {D} sponsors pledge massive funds for their tribute.',           tag:'system' },
   ],
 };
 
 const SPONSORS = [
-  '第1區匿名贊助者 → 葛雷塞迪',
-  '都城財閥 → 芬尼克·歐戴爾',
-  '商業聯盟 → 克萊特',
-  '第12區礦工工會 → 凱特尼斯',
-  '匿名高額贊助 → 比塔',
-  '都城娛樂集團 → 魯',
+  ['第1區匿名贊助者', '葛洛莉婭'], ['都城財閥', '芬尼克·歐戴爾'],
+  ['商業聯盟', '克萊特'], ['第12區礦工工會', '凱特尼斯'],
+  ['匿名高額贊助', '比塔'], ['都城娛樂集團', '魯'],
+  ['第2區武器商', '布魯特斯'], ['貴族俱樂部', '克蘿芙'],
+  ['第4區漁業協會', '莫克斯'], ['都城媒體集團', '葛雷塞迪'],
 ];
 
 // ══════════════════════════════════════════════════════
 //  STATE
 // ══════════════════════════════════════════════════════
-let tributes = TRIBUTES_INIT.map(t => ({ ...t, alive: true }));
+let tributes = [];
 let paused = false;
 let gameDay = 1;
 let eventCount = 0;
 let deadCount = 0;
 let quoteQueue = [...QUOTES];
 let gameOver = false;
+let speedLevel = 1;   // 0=slow, 1=normal, 2=fast, 3=fastest
+let activeFilter = 'all';
+let myTributeId = null;
+let eventTimer = null;
+let dayLastAdvanced = 0; // event count when day last advanced (cooldown)
+let popularity = {};
+
+const SPEEDS = [
+  { label:'0.5×', delay:6000 },
+  { label:'1×',   delay:3200 },
+  { label:'2×',   delay:1600 },
+  { label:'3×',   delay:800  },
+];
+
+// ══════════════════════════════════════════════════════
+//  AUDIO (Web Audio API)
+// ══════════════════════════════════════════════════════
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx = null;
+function getAudio() {
+  if (!audioCtx) audioCtx = new AudioCtx();
+  return audioCtx;
+}
+
+function playCannon() {
+  try {
+    const ctx = getAudio();
+    const buf = ctx.createBuffer(1, ctx.sampleRate * 0.6, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < data.length; i++) {
+      const t = i / ctx.sampleRate;
+      data[i] = (Math.random() * 2 - 1) * Math.exp(-t * 8) * 0.9;
+    }
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(1, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+    src.connect(gain);
+    gain.connect(ctx.destination);
+    src.start();
+  } catch(e) {}
+}
+
+function playBeep(freq = 440, duration = 0.12, vol = 0.1) {
+  try {
+    const ctx = getAudio();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.frequency.value = freq;
+    osc.type = 'square';
+    gain.gain.setValueAtTime(vol, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + duration);
+  } catch(e) {}
+}
+
+function playKeyClick() {
+  try {
+    const ctx = getAudio();
+    const buf = ctx.createBuffer(1, ctx.sampleRate * 0.04, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < data.length; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / 200) * 0.3;
+    }
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.connect(ctx.destination);
+    src.start();
+  } catch(e) {}
+}
 
 // ══════════════════════════════════════════════════════
 //  CLOCK
@@ -900,23 +1322,66 @@ setInterval(updateClock, 1000);
 updateClock();
 
 // ══════════════════════════════════════════════════════
+//  POPULARITY SYSTEM
+// ══════════════════════════════════════════════════════
+function initPopularity() {
+  popularity = {};
+  tributes.forEach(t => {
+    // base popularity weighted by survival stats
+    popularity[t.id] = Math.floor(20 + (t.survival * 0.4) + (t.speed * 0.2) + Math.random() * 20);
+  });
+}
+
+function boostPopularity(id, delta) {
+  if (!popularity[id]) return;
+  popularity[id] = Math.max(0, Math.min(999, popularity[id] + delta));
+  renderPopularity();
+}
+
+function renderPopularity() {
+  const list = document.getElementById('popularity-list');
+  const alive = tributes.filter(t => t.alive);
+  const sorted = alive.slice().sort((a,b) => (popularity[b.id]||0) - (popularity[a.id]||0)).slice(0,6);
+  const maxPop = sorted.length ? (popularity[sorted[0].id] || 1) : 1;
+
+  list.innerHTML = '';
+  sorted.forEach(t => {
+    const pop = popularity[t.id] || 0;
+    const pct = Math.round((pop / maxPop) * 100);
+    const row = document.createElement('div');
+    row.className = 'pop-row';
+    row.innerHTML = `
+      <div class="pop-name" title="${t.nameEn}">${t.name}</div>
+      <div class="pop-track"><div class="pop-fill" style="width:${pct}%"></div></div>
+      <div class="pop-val">${pop}</div>
+    `;
+    list.appendChild(row);
+  });
+}
+
+// ══════════════════════════════════════════════════════
 //  TRIBUTE RENDER
 // ══════════════════════════════════════════════════════
 function renderTributes() {
   const list = document.getElementById('tribute-list');
   list.innerHTML = '';
   tributes.forEach(t => {
+    const isMe = t.id === myTributeId;
     const card = document.createElement('div');
-    card.className = 'tribute-card' + (t.alive ? '' : ' eliminated');
+    card.className = 'tribute-card'
+      + (t.alive ? '' : ' eliminated')
+      + (isMe ? ' my-tribute' : '');
     card.id = `tribute-${t.id}`;
+    card.setAttribute('role', 'listitem');
+    card.setAttribute('aria-label', `${t.name}，第${t.district}區，${t.alive ? '存活' : '已淘汰'}`);
     card.innerHTML = `
-      <div class="tribute-status ${t.alive ? 'status-alive' : 'status-dead'}">${t.alive ? '存活' : '已淘汰'}</div>
+      <div class="tribute-status ${t.alive ? 'status-alive' : 'status-dead'}" aria-hidden="true">${t.alive ? '存活' : '已淘汰'}</div>
       <div class="tribute-name">${t.name}</div>
       <div class="tribute-district">第 ${t.district} 區 // DISTRICT ${t.district}</div>
       <div class="tribute-stats">
         <div class="stat-bar">
           <div class="stat-label">戰鬥</div>
-          <div class="bar-track"><div class="bar-fill" style="width:${t.strength}%"></div></div>
+          <div class="bar-track"><div class="bar-fill" style="width:${t.strength}%" role="progressbar" aria-valuenow="${t.strength}" aria-valuemin="0" aria-valuemax="100"></div></div>
         </div>
         <div class="stat-bar">
           <div class="stat-label">速度</div>
@@ -927,6 +1392,7 @@ function renderTributes() {
           <div class="bar-track"><div class="bar-fill" style="width:${t.survival}%"></div></div>
         </div>
       </div>
+      ${isMe ? '<div class="my-badge">★ 你的貢品</div>' : ''}
     `;
     list.appendChild(card);
   });
@@ -937,10 +1403,12 @@ function renderTributes() {
 // ══════════════════════════════════════════════════════
 function renderDistricts() {
   const grid = document.getElementById('district-grid');
-  const districts = [1,2,3,4,5,6,11,12];
+  const districts = [1,2,3,4,5,6,7,8,9,10,11,12];
   grid.innerHTML = '';
   districts.forEach(d => {
     const alive = tributes.filter(t => t.district === d && t.alive).length;
+    const total = tributes.filter(t => t.district === d).length;
+    if (total === 0) return;
     const div = document.createElement('div');
     div.className = 'district-item';
     div.innerHTML = `
@@ -979,9 +1447,12 @@ function timeStr() {
 function addLogEntry(zh, en, type, tag) {
   const log = document.getElementById('event-log');
   const entry = document.createElement('div');
-  entry.className = `log-entry type-${type}`;
-  const tagMap = { combat:'tag-combat', system:'tag-system', nature:'tag-nature', social:'tag-social' };
-  const tagLabels = { combat:'戰鬥', system:'系統', nature:'環境', social:'社交' };
+  const tagMap   = { combat:'tag-combat', system:'tag-system', nature:'tag-nature', social:'tag-social' };
+  const tagLabels= { combat:'戰鬥', system:'系統', nature:'環境', social:'社交' };
+
+  const isHidden = (activeFilter !== 'all' && activeFilter !== tag);
+  entry.className = `log-entry type-${type}${isHidden ? ' hidden' : ''}`;
+  entry.dataset.tag = tag;
   entry.innerHTML = `
     <div class="log-time">${timeStr()} // EVENT-${String(++eventCount).padStart(4,'0')}</div>
     <div class="log-text-zh">
@@ -992,6 +1463,26 @@ function addLogEntry(zh, en, type, tag) {
   log.appendChild(entry);
   log.scrollTop = log.scrollHeight;
 }
+
+// ══════════════════════════════════════════════════════
+//  FILTER
+// ══════════════════════════════════════════════════════
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeFilter = btn.dataset.filter;
+    playBeep(600, 0.08, 0.05);
+    document.querySelectorAll('.log-entry').forEach(entry => {
+      const entryTag = entry.dataset.tag;
+      if (activeFilter === 'all' || activeFilter === entryTag) {
+        entry.classList.remove('hidden');
+      } else {
+        entry.classList.add('hidden');
+      }
+    });
+  });
+});
 
 // ══════════════════════════════════════════════════════
 //  TYPING EFFECT
@@ -1005,7 +1496,8 @@ function typeMessage(msg) {
   function tick() {
     if (i < msg.length) {
       el.innerHTML = msg.slice(0, ++i) + '<span class="cursor-blink"></span>';
-      typingTimeout = setTimeout(tick, 35 + Math.random() * 30);
+      playKeyClick();
+      typingTimeout = setTimeout(tick, 30 + Math.random() * 25);
     } else {
       el.innerHTML = msg + '<span class="cursor-blink"></span>';
     }
@@ -1020,6 +1512,7 @@ function showBroadcast(msg, duration = 4000) {
   const banner = document.getElementById('broadcast-banner');
   document.getElementById('broadcast-msg').textContent = msg;
   banner.classList.add('visible');
+  playBeep(880, 0.2, 0.08);
   setTimeout(() => banner.classList.remove('visible'), duration);
 }
 
@@ -1031,25 +1524,45 @@ function showQuote(q) {
   document.getElementById('q-zh').textContent = `「${q.zh}」`;
   document.getElementById('q-src').textContent = q.src;
   document.getElementById('quote-overlay').classList.add('visible');
+  playBeep(440, 0.4, 0.06);
   paused = true;
 }
 document.getElementById('quote-dismiss').addEventListener('click', () => {
   document.getElementById('quote-overlay').classList.remove('visible');
   paused = false;
+  playBeep(660, 0.1, 0.05);
 });
+
+// ══════════════════════════════════════════════════════
+//  DEATH FLASH
+// ══════════════════════════════════════════════════════
+function triggerDeathFlash() {
+  const el = document.getElementById('death-flash');
+  el.classList.remove('flash');
+  void el.offsetWidth; // reflow
+  el.classList.add('flash');
+  playCannon();
+  setTimeout(() => el.classList.remove('flash'), 700);
+}
 
 // ══════════════════════════════════════════════════════
 //  SPONSOR FEED
 // ══════════════════════════════════════════════════════
-function addSponsor() {
+function addSponsor(tributeName) {
   const feed = document.getElementById('sponsor-feed');
-  const s = SPONSORS[Math.floor(Math.random() * SPONSORS.length)];
-  const [who, what] = s.split(' → ');
+  let who, what;
+  if (tributeName) {
+    const random = SPONSORS[Math.floor(Math.random() * SPONSORS.length)];
+    who = random[0]; what = tributeName;
+  } else {
+    const s = SPONSORS[Math.floor(Math.random() * SPONSORS.length)];
+    who = s[0]; what = s[1];
+  }
   const entry = document.createElement('div');
   entry.className = 'sponsor-entry';
   entry.innerHTML = `<span>${what}</span> 獲得贊助 ─ ${who}`;
   feed.insertBefore(entry, feed.firstChild);
-  if (feed.children.length > 20) feed.removeChild(feed.lastChild);
+  if (feed.children.length > 15) feed.removeChild(feed.lastChild);
 }
 
 // ══════════════════════════════════════════════════════
@@ -1061,15 +1574,27 @@ function eliminateTribute(tribute) {
   const card = document.getElementById(`tribute-${tribute.id}`);
   if (card) {
     card.classList.add('eliminated');
-    card.querySelector('.tribute-status').className = 'tribute-status status-dead';
-    card.querySelector('.tribute-status').textContent = '已淘汰';
+    const statusEl = card.querySelector('.tribute-status');
+    if (statusEl) { statusEl.className = 'tribute-status status-dead'; statusEl.textContent = '已淘汰'; }
   }
+  triggerDeathFlash();
   showBroadcast(`第 ${tribute.district} 區貢品「${tribute.name}」已被淘汰`);
   typeMessage(`處理淘汰記錄：${tribute.name} // DISTRICT ${tribute.district} // CONFIRMED`);
+
+  // popularity boost for survivors
+  tributes.filter(t => t.alive).forEach(t => boostPopularity(t.id, Math.floor(Math.random() * 5)));
+  delete popularity[tribute.id];
+
+  // my tribute death notification
+  if (tribute.id === myTributeId) {
+    setTimeout(() => {
+      showBroadcast('⚠ 你支持的貢品已被淘汰！', 6000);
+    }, 2000);
+  }
+
   updateStats();
   renderDistricts();
 
-  // check game over
   const alive = tributes.filter(t => t.alive);
   if (alive.length <= 1) {
     setTimeout(() => showGameOver(alive[0]), 2500);
@@ -1082,16 +1607,29 @@ function eliminateTribute(tribute) {
 function showGameOver(winner) {
   gameOver = true;
   paused = true;
-  const q = QUOTES[0];
+  stopEventTimer();
+  const q = QUOTES[Math.floor(Math.random() * QUOTES.length)];
   document.getElementById('winner-name').textContent = winner ? winner.name : '無人生還';
-  document.getElementById('winner-district').textContent = winner ? `第 ${winner.district} 區代表 // DISTRICT ${winner.district} VICTOR` : 'NO VICTOR';
+  document.getElementById('winner-district').textContent = winner
+    ? `第 ${winner.district} 區代表 // DISTRICT ${winner.district} VICTOR`
+    : 'NO VICTOR';
+  document.getElementById('go-days').textContent = gameDay;
+  document.getElementById('go-events').textContent = eventCount;
+  document.getElementById('go-dead').textContent = deadCount;
   document.getElementById('go-quote-en').textContent = `"${q.en}"`;
   document.getElementById('go-quote-zh').textContent = `「${q.zh}」`;
   document.getElementById('game-over').classList.add('visible');
+  playBeep(220, 2.0, 0.12);
 }
 
 document.getElementById('btn-restart').addEventListener('click', () => {
   document.getElementById('game-over').classList.remove('visible');
+  resetGame();
+  playBeep(660, 0.15, 0.08);
+});
+
+function resetGame() {
+  stopEventTimer();
   tributes = TRIBUTES_INIT.map(t => ({ ...t, alive: true }));
   gameDay = 1;
   eventCount = 0;
@@ -1099,69 +1637,125 @@ document.getElementById('btn-restart').addEventListener('click', () => {
   quoteQueue = [...QUOTES];
   gameOver = false;
   paused = false;
+  activeFilter = 'all';
+  myTributeId = null;
+  dayLastAdvanced = 0;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector('.filter-btn[data-filter="all"]').classList.add('active');
   document.getElementById('event-log').innerHTML = '';
   document.getElementById('sponsor-feed').innerHTML = '';
+  initPopularity();
   renderTributes();
   renderDistricts();
   updateStats();
-  init();
+  renderPopularity();
+  showCustomModal();
+}
+
+// ══════════════════════════════════════════════════════
+//  CUSTOM TRIBUTE MODAL
+// ══════════════════════════════════════════════════════
+function showCustomModal() {
+  document.getElementById('custom-modal').classList.add('visible');
+  paused = true;
+}
+
+function confirmCustomTribute() {
+  const name = document.getElementById('custom-name').value.trim();
+  const district = parseInt(document.getElementById('custom-district').value);
+  if (name) {
+    // replace a random tribute from that district or add as extra
+    const districtTributes = tributes.filter(t => t.district === district);
+    let targetTribute;
+    if (districtTributes.length > 0) {
+      targetTribute = districtTributes[Math.floor(Math.random() * districtTributes.length)];
+      targetTribute.name = name;
+      targetTribute.nameEn = name;
+    } else {
+      // add to a random district tribute
+      targetTribute = tributes[Math.floor(Math.random() * tributes.length)];
+      targetTribute.name = name;
+      targetTribute.nameEn = name;
+      targetTribute.district = district;
+    }
+    myTributeId = targetTribute.id;
+    popularity[targetTribute.id] = Math.floor(60 + Math.random() * 40); // starts popular
+  }
+  document.getElementById('custom-modal').classList.remove('visible');
+  paused = false;
+  renderTributes();
+  renderPopularity();
+  startInit();
+}
+
+document.getElementById('btn-confirm-custom').addEventListener('click', confirmCustomTribute);
+document.getElementById('btn-skip-custom').addEventListener('click', () => {
+  document.getElementById('custom-modal').classList.remove('visible');
+  paused = false;
+  startInit();
+});
+document.getElementById('custom-name').addEventListener('keydown', e => {
+  if (e.key === 'Enter') confirmCustomTribute();
 });
 
 // ══════════════════════════════════════════════════════
 //  RANDOM EVENT ENGINE
 // ══════════════════════════════════════════════════════
 function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+function getAlive() { return tributes.filter(t => t.alive); }
 
-function getAliveTributes() { return tributes.filter(t => t.alive); }
-
-function interpolate(str, a, b, n, d) {
+function interpolate(str, a, b) {
   return str
     .replace('{A}', a ? a.name : '未知')
     .replace('{B}', b ? b.name : '未知')
-    .replace('{N}', n || deadCount)
-    .replace('{D}', d || Math.ceil(Math.random() * 12));
+    .replace('{N}', deadCount)
+    .replace('{D}', Math.ceil(Math.random() * 12));
 }
 
 function generateEvent() {
   if (paused || gameOver) return;
-  const alive = getAliveTributes();
+  const alive = getAlive();
   if (alive.length <= 1) return;
 
   const roll = Math.random();
-  let evTemplate, evType, killer, victim;
 
   if (roll < 0.35 && alive.length >= 2) {
     // combat
-    evTemplate = pick(EVENTS.combat);
-    const [a, b] = alive.sort(() => Math.random()-0.5).slice(0, 2);
-    killer = a; victim = b;
-    const zh = interpolate(evTemplate.zh, a, b);
-    const en = interpolate(evTemplate.en, a, b);
-    addLogEntry(zh, en, evTemplate.kills ? 'death' : 'combat', 'combat');
-    if (evTemplate.kills) {
-      setTimeout(() => eliminateTribute(victim), 600);
+    const evT = pick(EVENTS.combat);
+    const shuffled = alive.slice().sort(() => Math.random() - 0.5);
+    const a = shuffled[0], b = shuffled[1];
+    const zh = interpolate(evT.zh, a, b);
+    const en = interpolate(evT.en, a, b);
+    addLogEntry(zh, en, evT.kills ? 'death' : 'combat', 'combat');
+    boostPopularity(a.id, 8);
+    if (evT.kills) {
+      setTimeout(() => eliminateTribute(b), 600);
     } else {
       typeMessage(`記錄戰鬥事件：${a.name} vs ${b.name}`);
     }
+
   } else if (roll < 0.55) {
     // alliance/social
-    evTemplate = pick(EVENTS.alliance);
-    const [a, b] = alive.sort(() => Math.random()-0.5).slice(0, 2);
-    const zh = interpolate(evTemplate.zh, a, b);
-    const en = interpolate(evTemplate.en, a, b);
-    addLogEntry(zh, en, 'combat', 'social');
+    const evT = pick(EVENTS.alliance);
+    const shuffled = alive.slice().sort(() => Math.random() - 0.5);
+    const a = shuffled[0], b = shuffled[1];
+    const zh = interpolate(evT.zh, a, b);
+    const en = interpolate(evT.en, a, b);
+    addLogEntry(zh, en, 'alliance', 'social');
+    boostPopularity(a.id, 5);
+    boostPopularity(b.id, 3);
     typeMessage(`記錄社交事件：第 ${a.district} 區 ↔ 第 ${b.district} 區`);
+
   } else if (roll < 0.80) {
     // hazard
-    evTemplate = pick(EVENTS.hazard);
+    const evT = pick(EVENTS.hazard);
     const a = pick(alive);
-    const zh = interpolate(evTemplate.zh, a);
-    const en = interpolate(evTemplate.en, a);
+    const zh = interpolate(evT.zh, a);
+    const en = interpolate(evT.en, a);
     addLogEntry(zh, en, 'hazard', 'nature');
     typeMessage(`偵測環境異常事件 // ARENA HAZARD ACTIVATED`);
-    // 20% chance hazard kills
     if (Math.random() < 0.2 && alive.length > 2) {
-      const victim = pick(alive);
+      const victim = pick(alive.filter(t => t.id !== a.id));
       setTimeout(() => {
         addLogEntry(
           `${victim.name} 因競技場環境威脅無法逃脫，已被淘汰。`,
@@ -1171,18 +1765,21 @@ function generateEvent() {
         eliminateTribute(victim);
       }, 1200);
     }
+
   } else {
     // system
-    evTemplate = pick(EVENTS.system);
-    const zh = interpolate(evTemplate.zh, null, null, deadCount);
-    const en = interpolate(evTemplate.en, null, null, deadCount);
+    const evT = pick(EVENTS.system);
+    const zh = interpolate(evT.zh);
+    const en = interpolate(evT.en);
     addLogEntry(zh, en, 'system', 'system');
     typeMessage(`系統事件處理中 // CAPITOL SYSTEM MESSAGE`);
     addSponsor();
+    addSponsor();
   }
 
-  // advance day occasionally
-  if (Math.random() < 0.08) {
+  // advance day (with cooldown: don't advance again within 5 events)
+  if (Math.random() < 0.08 && (eventCount - dayLastAdvanced) >= 5) {
+    dayLastAdvanced = eventCount;
     gameDay++;
     updateStats();
     addLogEntry(
@@ -1195,69 +1792,141 @@ function generateEvent() {
       setTimeout(() => showQuote(q), 800);
     }
   }
+
+  renderPopularity();
 }
 
 // ══════════════════════════════════════════════════════
-//  CONTROLS
+//  EVENT TIMER (recursive setTimeout for true randomness)
 // ══════════════════════════════════════════════════════
+function stopEventTimer() {
+  if (eventTimer) { clearTimeout(eventTimer); eventTimer = null; }
+}
+
+function scheduleNextEvent() {
+  stopEventTimer();
+  const { delay } = SPEEDS[speedLevel];
+  const jitter = delay * 0.3;
+  const nextDelay = delay + (Math.random() - 0.5) * jitter;
+  eventTimer = setTimeout(() => {
+    if (!paused && !gameOver) generateEvent();
+    scheduleNextEvent();
+  }, nextDelay);
+}
+
+// ══════════════════════════════════════════════════════
+//  SPEED CONTROLS
+// ══════════════════════════════════════════════════════
+function updateSpeedUI() {
+  document.getElementById('speed-label').textContent = SPEEDS[speedLevel].label;
+}
+
+document.getElementById('btn-slower').addEventListener('click', () => {
+  if (speedLevel > 0) { speedLevel--; updateSpeedUI(); scheduleNextEvent(); }
+  playBeep(400, 0.1, 0.05);
+});
+document.getElementById('btn-faster').addEventListener('click', () => {
+  if (speedLevel < SPEEDS.length - 1) { speedLevel++; updateSpeedUI(); scheduleNextEvent(); }
+  playBeep(800, 0.1, 0.05);
+});
+
 document.getElementById('btn-auto').addEventListener('click', function() {
   paused = false;
   this.classList.add('active');
   document.getElementById('btn-pause').classList.remove('active');
+  scheduleNextEvent();
+  playBeep(660, 0.1, 0.05);
 });
 document.getElementById('btn-pause').addEventListener('click', function() {
   paused = true;
   this.classList.add('active');
   document.getElementById('btn-auto').classList.remove('active');
+  stopEventTimer();
+  playBeep(440, 0.1, 0.05);
+});
+document.getElementById('btn-trigger').addEventListener('click', () => {
+  if (!gameOver) {
+    generateEvent();
+    playBeep(550, 0.12, 0.06);
+  }
 });
 document.getElementById('btn-quote').addEventListener('click', () => {
-  const q = pick(QUOTES);
-  showQuote(q);
+  showQuote(pick(QUOTES));
 });
 
 // ══════════════════════════════════════════════════════
-//  INIT
+//  MOBILE TABS
 // ══════════════════════════════════════════════════════
-function init() {
-  // opening sequence
+document.querySelectorAll('.mobile-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.mobile-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('mobile-active'));
+    tab.classList.add('active');
+    const panelId = tab.dataset.panel;
+    document.getElementById(panelId).classList.add('mobile-active');
+    playBeep(600, 0.08, 0.04);
+  });
+});
+
+// ══════════════════════════════════════════════════════
+//  FULLSCREEN (F KEY)
+// ══════════════════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  if (e.key === 'f' || e.key === 'F') {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    } else {
+      document.exitFullscreen().catch(() => {});
+    }
+  }
+  if (e.key === ' ' || e.key === 'Spacebar') {
+    e.preventDefault();
+    if (!gameOver) generateEvent();
+  }
+});
+
+// ══════════════════════════════════════════════════════
+//  INIT SEQUENCE
+// ══════════════════════════════════════════════════════
+function startInit() {
   addLogEntry(
-    '第 74 屆飢餓遊戲正式開始。都城控制系統已完全啟動。',
-    'The 74th Hunger Games officially commences. Capitol Control System fully operational.',
+    `第 74 屆飢餓遊戲正式開始。都城控制系統已完全啟動。共有 ${tributes.length} 名貢品已部署。`,
+    `The 74th Hunger Games officially commences. Capitol Control System fully operational. ${tributes.length} tributes deployed.`,
     'system', 'system'
   );
   typeMessage(`系統初始化完成 // 第 74 屆飢餓遊戲 // 記錄開始`);
 
   setTimeout(() => {
     addLogEntry(
-      '所有 24 名貢品已部署至競技場。生存記錄器已啟動。',
-      'All 24 tributes deployed to arena. Survival trackers activated.',
+      `所有 ${tributes.length} 名貢品已部署至競技場。生存記錄器已啟動。`,
+      `All ${tributes.length} tributes deployed to arena. Survival trackers activated.`,
       'system', 'system'
     );
-    showBroadcast('第 74 屆飢餓遊戲現已開始');
+    showBroadcast(`第 74 屆飢餓遊戲現已開始 — ${tributes.length} 名貢品入場`);
   }, 1500);
 
   setTimeout(() => {
     showQuote(QUOTES[0]);
   }, 3000);
 
-  // event loop
-  setInterval(() => {
-    if (!paused && !gameOver) generateEvent();
-  }, 3200 + Math.random() * 1400);
-
-  // sponsor feed ticker
+  // sponsor feed start
   setInterval(() => {
     if (!gameOver) addSponsor();
   }, 7000);
+
+  scheduleNextEvent();
 }
 
 // ══════════════════════════════════════════════════════
 //  BOOT
 // ══════════════════════════════════════════════════════
+tributes = TRIBUTES_INIT.map(t => ({ ...t, alive: true }));
+initPopularity();
 renderTributes();
 renderDistricts();
 updateStats();
-init();
+renderPopularity();
+showCustomModal();
 </script>
 </body>
 </html>
