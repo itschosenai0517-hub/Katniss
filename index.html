@@ -1,0 +1,1263 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>飢餓遊戲 — 都城控制系統</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;400;600;700;900&family=Share+Tech+Mono&family=Cinzel:wght@400;700;900&display=swap" rel="stylesheet" />
+<style>
+  /* ─── RESET & BASE ─────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --black:   #000000;
+    --bg:      #030303;
+    --surface: #080808;
+    --panel:   #0a0a0a;
+    --border:  #1a1a1a;
+    --line:    #141414;
+    --dim:     #2a2a2a;
+    --muted:   #444444;
+    --text:    #c8c8c8;
+    --bright:  #e8e8e8;
+    --red:     #8b0000;
+    --red-hot: #cc1111;
+    --red-glow:#ff2222;
+    --gold:    #b8922a;
+    --gold-lt: #d4a93a;
+    --scan:    rgba(180,180,180,0.03);
+    --ff-zh:   'Noto Serif TC', serif;
+    --ff-en:   'Cinzel', serif;
+    --ff-mono: 'Share Tech Mono', monospace;
+  }
+  html, body { height: 100%; width: 100%; overflow: hidden; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--ff-zh);
+    font-size: 13px;
+    line-height: 1.6;
+    cursor: crosshair;
+    user-select: none;
+  }
+
+  /* ─── SCANLINE OVERLAY ────────────────────────────── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: 9999;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      var(--scan) 2px,
+      var(--scan) 4px
+    );
+  }
+  body::after {
+    content: '';
+    position: fixed; inset: 0; z-index: 9998;
+    pointer-events: none;
+    background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.6) 100%);
+  }
+
+  /* ─── TOP HEADER ──────────────────────────────────── */
+  #header {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    height: 52px;
+    background: var(--black);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 24px;
+  }
+  #header .sys-id {
+    font-family: var(--ff-mono);
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+  #header .title-block { text-align: center; }
+  #header .title-zh {
+    font-family: var(--ff-zh);
+    font-weight: 900;
+    font-size: 14px;
+    color: var(--bright);
+    letter-spacing: 0.4em;
+    text-transform: uppercase;
+  }
+  #header .title-en {
+    font-family: var(--ff-en);
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 0.3em;
+    margin-top: 1px;
+  }
+  #header .status-row {
+    display: flex; align-items: center; gap: 16px;
+  }
+  .pulse-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--red-hot);
+    box-shadow: 0 0 6px var(--red-hot);
+    animation: pulse-red 1.4s infinite;
+  }
+  @keyframes pulse-red {
+    0%,100%{ opacity:1; transform:scale(1); }
+    50%{ opacity:0.4; transform:scale(0.7); }
+  }
+  .live-badge {
+    font-family: var(--ff-mono);
+    font-size: 9px;
+    color: var(--red-hot);
+    letter-spacing: 0.2em;
+  }
+  .clock {
+    font-family: var(--ff-mono);
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+  }
+
+  /* ─── MAIN LAYOUT ─────────────────────────────────── */
+  #app {
+    position: fixed; inset: 0;
+    padding-top: 52px;
+    display: grid;
+    grid-template-columns: 280px 1fr 240px;
+    grid-template-rows: 1fr;
+    gap: 0;
+  }
+
+  /* ─── PANEL BASE ──────────────────────────────────── */
+  .panel {
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+    position: relative;
+  }
+  .panel:last-child { border-right: none; border-left: 1px solid var(--border); }
+  .panel-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--black);
+    flex-shrink: 0;
+  }
+  .panel-label {
+    font-family: var(--ff-mono);
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+  .panel-title {
+    font-family: var(--ff-zh);
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--bright);
+    letter-spacing: 0.1em;
+  }
+
+  /* ─── LEFT PANEL — TRIBUTES ───────────────────────── */
+  #panel-left { grid-column: 1; }
+  #tribute-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  #tribute-list::-webkit-scrollbar { width: 2px; }
+  #tribute-list::-webkit-scrollbar-track { background: transparent; }
+  #tribute-list::-webkit-scrollbar-thumb { background: var(--dim); }
+
+  .tribute-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 10px 12px;
+    position: relative;
+    transition: border-color 0.2s, background 0.2s;
+    cursor: pointer;
+  }
+  .tribute-card::before {
+    content: '';
+    position: absolute; left: 0; top: 0; bottom: 0;
+    width: 2px;
+    background: var(--dim);
+    transition: background 0.2s;
+  }
+  .tribute-card:hover { background: #0e0e0e; border-color: var(--dim); }
+  .tribute-card:hover::before { background: var(--gold); }
+  .tribute-card.eliminated {
+    opacity: 0.35;
+  }
+  .tribute-card.eliminated::before { background: var(--red) !important; }
+
+  .tribute-name {
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--bright);
+    letter-spacing: 0.05em;
+    margin-bottom: 2px;
+  }
+  .tribute-card.eliminated .tribute-name { color: var(--muted); }
+  .tribute-district {
+    font-family: var(--ff-mono);
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 0.2em;
+    margin-bottom: 6px;
+  }
+  .tribute-stats {
+    display: flex; gap: 8px; flex-wrap: wrap;
+  }
+  .stat-bar {
+    flex: 1; min-width: 60px;
+  }
+  .stat-label {
+    font-family: var(--ff-mono);
+    font-size: 8px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    margin-bottom: 3px;
+  }
+  .bar-track {
+    height: 2px;
+    background: var(--dim);
+    position: relative;
+  }
+  .bar-fill {
+    position: absolute; left: 0; top: 0; bottom: 0;
+    background: var(--gold);
+    transition: width 0.8s ease;
+  }
+  .tribute-card.eliminated .bar-fill { background: var(--red); }
+
+  .tribute-status {
+    position: absolute; top: 10px; right: 10px;
+    font-family: var(--ff-mono);
+    font-size: 8px;
+    letter-spacing: 0.15em;
+  }
+  .status-alive { color: #4a9a4a; }
+  .status-dead {
+    color: var(--red-hot);
+    text-shadow: 0 0 8px var(--red);
+  }
+
+  /* ─── CENTER PANEL — EVENT LOG ────────────────────── */
+  #panel-center {
+    grid-column: 2;
+    background: var(--black);
+    border-right: 1px solid var(--border);
+    border-left: 1px solid var(--border);
+  }
+  #panel-center .panel-header {
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .log-controls {
+    display: flex; gap: 8px; align-items: center;
+  }
+  .btn-control {
+    font-family: var(--ff-mono);
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: var(--muted);
+    background: transparent;
+    border: 1px solid var(--border);
+    padding: 4px 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-transform: uppercase;
+  }
+  .btn-control:hover {
+    color: var(--bright);
+    border-color: var(--dim);
+    background: var(--surface);
+  }
+  .btn-control.active {
+    color: var(--gold);
+    border-color: var(--gold);
+  }
+
+  #event-log {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  #event-log::-webkit-scrollbar { width: 2px; }
+  #event-log::-webkit-scrollbar-thumb { background: var(--dim); }
+
+  .log-entry {
+    padding: 10px 14px;
+    border-left: 1px solid var(--dim);
+    background: transparent;
+    animation: entry-in 0.4s ease forwards;
+    opacity: 0;
+    position: relative;
+  }
+  @keyframes entry-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .log-entry:hover { background: rgba(255,255,255,0.015); }
+
+  .log-entry.type-death {
+    border-left-color: var(--red);
+    background: rgba(139,0,0,0.06);
+    animation: entry-in 0.4s ease forwards, death-flash 0.6s ease;
+  }
+  @keyframes death-flash {
+    0%{ background: rgba(139,0,0,0.25); }
+    100%{ background: rgba(139,0,0,0.06); }
+  }
+  .log-entry.type-alliance { border-left-color: #1a3a1a; }
+  .log-entry.type-system {
+    border-left-color: var(--gold);
+    background: rgba(184,146,42,0.04);
+  }
+  .log-entry.type-hazard { border-left-color: #3a2800; }
+
+  .log-time {
+    font-family: var(--ff-mono);
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    margin-bottom: 4px;
+  }
+  .log-text-zh {
+    font-size: 13px;
+    color: var(--bright);
+    font-weight: 400;
+    line-height: 1.7;
+    letter-spacing: 0.03em;
+  }
+  .log-entry.type-death .log-text-zh { color: #e8aaaa; }
+  .log-entry.type-system .log-text-zh { color: #d4b870; }
+  .log-text-en {
+    font-family: var(--ff-mono);
+    font-size: 9px;
+    color: var(--muted);
+    margin-top: 3px;
+    letter-spacing: 0.05em;
+  }
+  .log-tag {
+    display: inline-block;
+    font-family: var(--ff-mono);
+    font-size: 8px;
+    letter-spacing: 0.15em;
+    padding: 1px 5px;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+  .tag-combat { background: rgba(139,0,0,0.3); color: var(--red-hot); }
+  .tag-system { background: rgba(184,146,42,0.2); color: var(--gold-lt); }
+  .tag-nature { background: rgba(20,50,20,0.4); color: #6aaa6a; }
+  .tag-social { background: rgba(20,30,60,0.4); color: #7a9acc; }
+
+  /* center panel bottom — typing bar */
+  #typing-bar {
+    padding: 12px 16px;
+    border-top: 1px solid var(--border);
+    background: var(--black);
+    flex-shrink: 0;
+  }
+  .typing-label {
+    font-family: var(--ff-mono);
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 0.2em;
+    margin-bottom: 4px;
+  }
+  #typing-output {
+    font-family: var(--ff-mono);
+    font-size: 11px;
+    color: var(--gold-lt);
+    letter-spacing: 0.05em;
+    min-height: 18px;
+  }
+  .cursor-blink {
+    display: inline-block;
+    width: 7px; height: 12px;
+    background: var(--gold-lt);
+    margin-left: 2px;
+    vertical-align: middle;
+    animation: blink 0.8s step-end infinite;
+  }
+  @keyframes blink { 0%,100%{ opacity:1; } 50%{ opacity:0; } }
+
+  /* ─── RIGHT PANEL — STATUS ────────────────────────── */
+  #panel-right { grid-column: 3; }
+  .status-section {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--line);
+  }
+  .section-label {
+    font-family: var(--ff-mono);
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .stat-row {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 7px;
+  }
+  .stat-key {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+  .stat-val {
+    font-family: var(--ff-mono);
+    font-size: 12px;
+    color: var(--bright);
+  }
+  .stat-val.danger { color: var(--red-hot); text-shadow: 0 0 8px var(--red); }
+  .stat-val.gold { color: var(--gold-lt); }
+
+  /* threat meter */
+  .threat-track {
+    height: 3px;
+    background: var(--dim);
+    margin-top: 4px;
+    position: relative;
+  }
+  .threat-fill {
+    position: absolute; left: 0; top: 0; bottom: 0;
+    background: linear-gradient(90deg, var(--gold), var(--red-hot));
+    transition: width 1s ease;
+  }
+
+  /* district breakdown */
+  .district-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5px;
+  }
+  .district-item {
+    padding: 6px 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    display: flex; flex-direction: column;
+  }
+  .district-num {
+    font-family: var(--ff-mono);
+    font-size: 8px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+  }
+  .district-alive {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--bright);
+    margin-top: 2px;
+  }
+  .district-alive.zero { color: var(--red); opacity: 0.5; }
+
+  /* sponsor feed */
+  #sponsor-feed {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px 16px;
+  }
+  #sponsor-feed::-webkit-scrollbar { width: 2px; }
+  #sponsor-feed::-webkit-scrollbar-thumb { background: var(--dim); }
+  .sponsor-entry {
+    font-size: 10px;
+    color: var(--muted);
+    padding: 5px 0;
+    border-bottom: 1px solid var(--line);
+    animation: entry-in 0.3s ease forwards;
+    opacity: 0;
+  }
+  .sponsor-entry span { color: var(--gold); }
+
+  /* ─── QUOTE OVERLAY ───────────────────────────────── */
+  #quote-overlay {
+    position: fixed; inset: 0; z-index: 500;
+    background: rgba(0,0,0,0.92);
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column;
+    text-align: center;
+    padding: 40px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.6s ease;
+  }
+  #quote-overlay.visible {
+    opacity: 1;
+    pointer-events: all;
+  }
+  .quote-label {
+    font-family: var(--ff-mono);
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 0.4em;
+    text-transform: uppercase;
+    margin-bottom: 32px;
+  }
+  .quote-label::before, .quote-label::after {
+    content: ' ── ';
+    color: var(--dim);
+  }
+  .quote-en {
+    font-family: var(--ff-en);
+    font-size: 18px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    max-width: 600px;
+    margin-bottom: 24px;
+    font-style: italic;
+    line-height: 1.8;
+  }
+  .quote-zh {
+    font-family: var(--ff-zh);
+    font-weight: 900;
+    font-size: 26px;
+    color: var(--bright);
+    letter-spacing: 0.15em;
+    max-width: 580px;
+    line-height: 1.6;
+    margin-bottom: 40px;
+  }
+  .quote-source {
+    font-family: var(--ff-mono);
+    font-size: 9px;
+    color: var(--dim);
+    letter-spacing: 0.2em;
+  }
+  .quote-dismiss {
+    margin-top: 48px;
+    font-family: var(--ff-mono);
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 0.3em;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    padding: 8px 24px;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    background: transparent;
+  }
+  .quote-dismiss:hover {
+    color: var(--bright);
+    border-color: var(--dim);
+  }
+
+  /* ─── BROADCAST BANNER ────────────────────────────── */
+  #broadcast-banner {
+    position: fixed; top: 52px; left: 0; right: 0; z-index: 200;
+    background: rgba(139,0,0,0.95);
+    border-bottom: 1px solid var(--red-hot);
+    padding: 8px 24px;
+    display: flex; align-items: center; gap: 16px;
+    transform: translateY(-100%);
+    transition: transform 0.3s ease;
+  }
+  #broadcast-banner.visible { transform: translateY(0); }
+  .broadcast-label {
+    font-family: var(--ff-mono);
+    font-size: 9px;
+    color: rgba(255,255,255,0.9);
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    flex-shrink: 0;
+  }
+  .broadcast-sep {
+    width: 1px; height: 16px;
+    background: rgba(255,255,255,0.2);
+  }
+  .broadcast-msg {
+    font-family: var(--ff-zh);
+    font-size: 12px;
+    color: rgba(255,255,255,0.9);
+    letter-spacing: 0.05em;
+  }
+
+  /* ─── CORNER DECORATION ───────────────────────────── */
+  .corner-deco {
+    position: absolute;
+    width: 16px; height: 16px;
+    pointer-events: none;
+  }
+  .corner-deco.tl { top: 0; left: 0;
+    border-top: 1px solid var(--gold); border-left: 1px solid var(--gold); }
+  .corner-deco.tr { top: 0; right: 0;
+    border-top: 1px solid var(--gold); border-right: 1px solid var(--gold); }
+  .corner-deco.bl { bottom: 0; left: 0;
+    border-bottom: 1px solid var(--gold); border-left: 1px solid var(--gold); }
+  .corner-deco.br { bottom: 0; right: 0;
+    border-bottom: 1px solid var(--gold); border-right: 1px solid var(--gold); }
+
+  /* ─── GAME OVER SCREEN ────────────────────────────── */
+  #game-over {
+    position: fixed; inset: 0; z-index: 800;
+    background: #000;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none;
+    transition: opacity 1s ease;
+    text-align: center;
+    padding: 40px;
+  }
+  #game-over.visible { opacity: 1; pointer-events: all; }
+  .game-over-label {
+    font-family: var(--ff-mono);
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 0.5em;
+    margin-bottom: 40px;
+  }
+  .game-over-winner {
+    font-family: var(--ff-zh);
+    font-weight: 900;
+    font-size: 48px;
+    color: var(--gold-lt);
+    letter-spacing: 0.3em;
+    text-shadow: 0 0 40px rgba(184,146,42,0.5);
+    margin-bottom: 16px;
+    animation: gold-pulse 2s ease infinite;
+  }
+  @keyframes gold-pulse {
+    0%,100%{ text-shadow: 0 0 40px rgba(184,146,42,0.5); }
+    50%{ text-shadow: 0 0 80px rgba(184,146,42,0.9); }
+  }
+  .game-over-sub {
+    font-family: var(--ff-en);
+    font-size: 13px;
+    color: var(--muted);
+    letter-spacing: 0.3em;
+    margin-bottom: 60px;
+  }
+  .btn-restart {
+    font-family: var(--ff-mono);
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    color: var(--muted);
+    background: transparent;
+    border: 1px solid var(--border);
+    padding: 12px 32px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    margin-top: 40px;
+  }
+  .btn-restart:hover {
+    color: var(--bright);
+    border-color: var(--dim);
+  }
+
+  /* ─── SCROLLBAR HIDE ──────────────────────────────── */
+  * { scrollbar-width: thin; scrollbar-color: var(--dim) transparent; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header id="header">
+  <div class="sys-id">SYS-ID: HG-74 // PANEM CONTROL // CLASSIFIED</div>
+  <div class="title-block">
+    <div class="title-zh">都城監控系統</div>
+    <div class="title-en">CAPITOL SURVEILLANCE CONTROL SYSTEM</div>
+  </div>
+  <div class="status-row">
+    <div class="pulse-dot"></div>
+    <div class="live-badge">直播中</div>
+    <div class="clock" id="clock">--:--:--</div>
+  </div>
+</header>
+
+<!-- BROADCAST BANNER -->
+<div id="broadcast-banner">
+  <div class="broadcast-label">系統廣播</div>
+  <div class="broadcast-sep"></div>
+  <div class="broadcast-msg" id="broadcast-msg"></div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app">
+
+  <!-- LEFT: TRIBUTES -->
+  <div class="panel" id="panel-left">
+    <div class="panel-header">
+      <div class="panel-label">TRIBUTE MODULE // ACTIVE</div>
+      <div class="panel-title">貢品管理系統</div>
+    </div>
+    <div id="tribute-list"></div>
+  </div>
+
+  <!-- CENTER: EVENT LOG -->
+  <div class="panel" id="panel-center">
+    <div class="panel-header">
+      <div>
+        <div class="panel-label">EVENT LOG // REAL-TIME FEED</div>
+        <div class="panel-title">即時事件記錄</div>
+      </div>
+      <div class="log-controls">
+        <button class="btn-control active" id="btn-auto">自動</button>
+        <button class="btn-control" id="btn-pause">暫停</button>
+        <button class="btn-control" id="btn-quote">語錄</button>
+      </div>
+    </div>
+    <div id="event-log"></div>
+    <div id="typing-bar">
+      <div class="typing-label">// SYSTEM PROCESSING</div>
+      <div id="typing-output"><span class="cursor-blink"></span></div>
+    </div>
+  </div>
+
+  <!-- RIGHT: STATUS -->
+  <div class="panel" id="panel-right">
+    <div class="panel-header">
+      <div class="panel-label">STATUS // GAME STATE</div>
+      <div class="panel-title">遊戲狀態面板</div>
+    </div>
+
+    <div class="status-section">
+      <div class="section-label">// 遊戲概況</div>
+      <div class="stat-row">
+        <div class="stat-key">存活貢品</div>
+        <div class="stat-val" id="stat-alive">24</div>
+      </div>
+      <div class="stat-row">
+        <div class="stat-key">已淘汰</div>
+        <div class="stat-val danger" id="stat-dead">0</div>
+      </div>
+      <div class="stat-row">
+        <div class="stat-key">競技場日</div>
+        <div class="stat-val gold" id="stat-day">第 1 日</div>
+      </div>
+      <div class="stat-row">
+        <div class="stat-key">威脅等級</div>
+        <div class="stat-val danger" id="stat-threat">中等</div>
+      </div>
+      <div class="threat-track">
+        <div class="threat-fill" id="threat-bar" style="width:40%"></div>
+      </div>
+    </div>
+
+    <div class="status-section">
+      <div class="section-label">// 各區存活</div>
+      <div class="district-grid" id="district-grid"></div>
+    </div>
+
+    <div class="status-section" style="border-bottom:none; padding-bottom:6px;">
+      <div class="section-label">// 贊助商動態</div>
+    </div>
+    <div id="sponsor-feed"></div>
+  </div>
+</div>
+
+<!-- QUOTE OVERLAY -->
+<div id="quote-overlay">
+  <div class="corner-deco tl"></div>
+  <div class="corner-deco tr"></div>
+  <div class="corner-deco bl"></div>
+  <div class="corner-deco br"></div>
+  <div class="quote-label">系統廣播 // SYSTEM BROADCAST</div>
+  <div class="quote-en" id="q-en"></div>
+  <div class="quote-zh" id="q-zh"></div>
+  <div class="quote-source" id="q-src"></div>
+  <button class="quote-dismiss" id="quote-dismiss">確認 // ACKNOWLEDGE</button>
+</div>
+
+<!-- GAME OVER -->
+<div id="game-over">
+  <div class="game-over-label">// 第 74 屆飢餓遊戲 // 競技結束 //</div>
+  <div class="game-over-winner" id="winner-name"></div>
+  <div class="game-over-sub" id="winner-district"></div>
+  <div class="quote-en" style="max-width:500px; font-size:14px;" id="go-quote-en"></div>
+  <div class="quote-zh" style="font-size:20px;" id="go-quote-zh"></div>
+  <button class="btn-restart" id="btn-restart">重新開始 // RESTART SIMULATION</button>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════
+//  DATA
+// ══════════════════════════════════════════════════════
+const TRIBUTES_INIT = [
+  { id:1,  name:'凱特尼斯·艾佛丁', nameEn:'Katniss Everdeen',   district:12, gender:'F', strength:92, speed:88, survival:95 },
+  { id:2,  name:'比塔·梅拉克',     nameEn:'Peeta Mellark',       district:12, gender:'M', strength:70, speed:65, survival:78 },
+  { id:3,  name:'克萊特',          nameEn:'Cato',                district:2,  gender:'M', strength:97, speed:85, survival:82 },
+  { id:4,  name:'克蘿芙',          nameEn:'Clove',               district:2,  gender:'F', strength:85, speed:90, survival:80 },
+  { id:5,  name:'芬尼克·歐戴爾',   nameEn:'Finnick Odair',       district:4,  gender:'M', strength:94, speed:92, survival:90 },
+  { id:6,  name:'魯',              nameEn:'Rue',                 district:11, gender:'F', strength:45, speed:96, survival:70 },
+  { id:7,  name:'思里許',          nameEn:'Thresh',              district:11, gender:'M', strength:96, speed:72, survival:75 },
+  { id:8,  name:'葛雷塞迪',        nameEn:'Glimmer',             district:1,  gender:'F', strength:78, speed:80, survival:72 },
+    { id:9,  name:'馬維爾',          nameEn:'Marvel',              district:1,  gender:'M', strength:80, speed:78, survival:70 },
+  { id:10, name:'福克斯菲斯',      nameEn:'Foxface',             district:5,  gender:'F', strength:40, speed:94, survival:85 },
+  { id:11, name:'傑卡',            nameEn:'Jacqueline',          district:3,  gender:'F', strength:55, speed:60, survival:65 },
+  { id:12, name:'史緹芬',          nameEn:'Stefan',              district:6,  gender:'M', strength:60, speed:55, survival:58 },
+];
+
+const QUOTES = [
+  {
+    en: "May the odds be ever in your favor.",
+    zh: "願機率永遠站在你這邊。",
+    src: "— 艾菲·吹客 · 第 74 屆飢餓遊戲"
+  },
+  {
+    en: "Fire is catching! And if we burn, you burn with us!",
+    zh: "火正在蔓延！若我們燃燒，你們也將一同燃燒！",
+    src: "— 凱特尼斯·艾佛丁"
+  },
+  {
+    en: "Hope is the only thing stronger than fear.",
+    zh: "希望，是唯一比恐懼更強大的力量。",
+    src: "— 柯利歐雷斯·斯諾總統"
+  },
+  {
+    en: "Happy Hunger Games! And may the odds be ever in your favor.",
+    zh: "飢餓遊戲快樂！願機率永遠站在你這邊。",
+    src: "— 艾菲·吹客"
+  },
+  {
+    en: "I am not pretty. I am not beautiful. I am as radiant as the sun.",
+    zh: "我並不美麗。但我如太陽般光芒萬丈。",
+    src: "— 凱特尼斯·艾佛丁"
+  },
+  {
+    en: "Real or not real?",
+    zh: "真實，還是虛假？",
+    src: "— 比塔·梅拉克"
+  },
+  {
+    en: "I want to die as myself.",
+    zh: "我想以自己的身分死去。",
+    src: "— 比塔·梅拉克"
+  },
+];
+
+const EVENTS = {
+  combat: [
+    { zh: '{A} 在血腥角（Cornucopia）向 {B} 發動突襲，{B} 重傷撤退。', en: '{A} ambushes {B} at the Cornucopia. {B} retreats, critically wounded.', tag:'combat' },
+    { zh: '{A} 使用長矛刺穿 {B} 的防線，{B} 遭到淘汰。', en: '{A} pierces {B}\'s defenses with a spear. {B} is eliminated.', tag:'combat', kills:true },
+    { zh: '{A} 與 {B} 展開近身格鬥，雙方均受到中度傷害。', en: '{A} and {B} engage in close combat. Both sustain moderate injuries.', tag:'combat' },
+    { zh: '{A} 從高處伏擊 {B}，{B} 墜落受重傷。', en: '{A} ambushes {B} from elevation. {B} sustains critical fall damage.', tag:'combat' },
+    { zh: '{A} 用弓箭精準擊中 {B}，{B} 已被淘汰。', en: '{A} lands a precise arrow strike on {B}. {B} is eliminated.', tag:'combat', kills:true },
+  ],
+  alliance: [
+    { zh: '{A} 向 {B} 提出結盟協議，雙方暫時達成協定。', en: '{A} proposes an alliance to {B}. A temporary pact is formed.', tag:'social' },
+    { zh: '{A} 背叛盟友 {B}，趁其熟睡時奪取補給品。', en: '{A} betrays ally {B}, stealing supplies during sleep.', tag:'social' },
+    { zh: '{A} 與 {B} 共享食物，鞏固聯盟關係。', en: '{A} shares rations with {B}, reinforcing their alliance.', tag:'social' },
+    { zh: '{A} 發現 {B} 已背叛聯盟，立即解除協議。', en: '{A} discovers {B}\'s betrayal and dissolves the alliance.', tag:'social' },
+  ],
+  hazard: [
+    { zh: '競技場東區突然爆發蟲雲攻擊，多名貢品被迫轉移。', en: 'Tracker jacker swarm erupts in the eastern sector. Multiple tributes forced to relocate.', tag:'nature' },
+    { zh: '都城觸發競技場火焰機關，逼迫貢品向中心移動。', en: 'Capitol activates arena fire mechanism, driving tributes toward the center.', tag:'nature' },
+    { zh: '有毒漿果區域擴大，{A} 差點誤食。', en: 'Poisonous berry zone expands. {A} narrowly avoids ingestion.', tag:'nature' },
+    { zh: '夜間氣溫驟降，部分貢品因低溫症受到傷害。', en: 'Overnight temperature plummets. Several tributes suffer hypothermia damage.', tag:'nature' },
+    { zh: '競技場北部發生山崩，封鎖逃生路線。', en: 'Landslide in northern sector. Escape routes sealed.', tag:'nature' },
+    { zh: '突變狼群從森林邊緣逼近，貢品們陷入恐慌。', en: 'Mutant wolf pack closes in from the forest perimeter. Tributes in disarray.', tag:'nature' },
+  ],
+  system: [
+    { zh: '都城廣播：請各位貢品注意競技場最新規則更新。', en: 'Capitol announcement: All tributes are advised of updated arena regulations.', tag:'system' },
+    { zh: '砲聲響起，確認第 {N} 名貢品已被淘汰。', en: 'Cannon confirms tribute #{N} elimination.', tag:'system' },
+    { zh: '贊助商禮包已投放至第 {D} 區代表貢品位置。', en: 'Sponsor package delivered to District {D} tribute location.', tag:'system' },
+    { zh: '競技場規則臨時修正：允許同區貢品共同勝出。', en: 'Rule amendment: Joint victory permitted for tributes from the same district.', tag:'system' },
+  ],
+};
+
+const SPONSORS = [
+  '第1區匿名贊助者 → 葛雷塞迪',
+  '都城財閥 → 芬尼克·歐戴爾',
+  '商業聯盟 → 克萊特',
+  '第12區礦工工會 → 凱特尼斯',
+  '匿名高額贊助 → 比塔',
+  '都城娛樂集團 → 魯',
+];
+
+// ══════════════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════════════
+let tributes = TRIBUTES_INIT.map(t => ({ ...t, alive: true }));
+let paused = false;
+let gameDay = 1;
+let eventCount = 0;
+let deadCount = 0;
+let quoteQueue = [...QUOTES];
+let gameOver = false;
+
+// ══════════════════════════════════════════════════════
+//  CLOCK
+// ══════════════════════════════════════════════════════
+function updateClock() {
+  const now = new Date();
+  const h = String(now.getHours()).padStart(2,'0');
+  const m = String(now.getMinutes()).padStart(2,'0');
+  const s = String(now.getSeconds()).padStart(2,'0');
+  document.getElementById('clock').textContent = `${h}:${m}:${s}`;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ══════════════════════════════════════════════════════
+//  TRIBUTE RENDER
+// ══════════════════════════════════════════════════════
+function renderTributes() {
+  const list = document.getElementById('tribute-list');
+  list.innerHTML = '';
+  tributes.forEach(t => {
+    const card = document.createElement('div');
+    card.className = 'tribute-card' + (t.alive ? '' : ' eliminated');
+    card.id = `tribute-${t.id}`;
+    card.innerHTML = `
+      <div class="tribute-status ${t.alive ? 'status-alive' : 'status-dead'}">${t.alive ? '存活' : '已淘汰'}</div>
+      <div class="tribute-name">${t.name}</div>
+      <div class="tribute-district">第 ${t.district} 區 // DISTRICT ${t.district}</div>
+      <div class="tribute-stats">
+        <div class="stat-bar">
+          <div class="stat-label">戰鬥</div>
+          <div class="bar-track"><div class="bar-fill" style="width:${t.strength}%"></div></div>
+        </div>
+        <div class="stat-bar">
+          <div class="stat-label">速度</div>
+          <div class="bar-track"><div class="bar-fill" style="width:${t.speed}%"></div></div>
+        </div>
+        <div class="stat-bar">
+          <div class="stat-label">生存</div>
+          <div class="bar-track"><div class="bar-fill" style="width:${t.survival}%"></div></div>
+        </div>
+      </div>
+    `;
+    list.appendChild(card);
+  });
+}
+
+// ══════════════════════════════════════════════════════
+//  DISTRICT GRID
+// ══════════════════════════════════════════════════════
+function renderDistricts() {
+  const grid = document.getElementById('district-grid');
+  const districts = [1,2,3,4,5,6,11,12];
+  grid.innerHTML = '';
+  districts.forEach(d => {
+    const alive = tributes.filter(t => t.district === d && t.alive).length;
+    const div = document.createElement('div');
+    div.className = 'district-item';
+    div.innerHTML = `
+      <div class="district-num">第 ${d} 區</div>
+      <div class="district-alive ${alive === 0 ? 'zero' : ''}">${alive === 0 ? '全滅' : alive + ' 存活'}</div>
+    `;
+    grid.appendChild(div);
+  });
+}
+
+// ══════════════════════════════════════════════════════
+//  STATS
+// ══════════════════════════════════════════════════════
+function updateStats() {
+  const alive = tributes.filter(t => t.alive).length;
+  const dead = tributes.filter(t => !t.alive).length;
+  document.getElementById('stat-alive').textContent = alive;
+  document.getElementById('stat-dead').textContent = dead;
+  document.getElementById('stat-day').textContent = `第 ${gameDay} 日`;
+
+  const threatPct = Math.min(95, (dead / tributes.length) * 100 + 20);
+  document.getElementById('threat-bar').style.width = threatPct + '%';
+  const threats = ['低度','中等','高度','極危'];
+  const ti = Math.min(3, Math.floor(threatPct / 25));
+  document.getElementById('stat-threat').textContent = threats[ti];
+}
+
+// ══════════════════════════════════════════════════════
+//  EVENT LOG
+// ══════════════════════════════════════════════════════
+function timeStr() {
+  const now = new Date();
+  return `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+}
+
+function addLogEntry(zh, en, type, tag) {
+  const log = document.getElementById('event-log');
+  const entry = document.createElement('div');
+  entry.className = `log-entry type-${type}`;
+  const tagMap = { combat:'tag-combat', system:'tag-system', nature:'tag-nature', social:'tag-social' };
+  const tagLabels = { combat:'戰鬥', system:'系統', nature:'環境', social:'社交' };
+  entry.innerHTML = `
+    <div class="log-time">${timeStr()} // EVENT-${String(++eventCount).padStart(4,'0')}</div>
+    <div class="log-text-zh">
+      <span class="log-tag ${tagMap[tag] || 'tag-system'}">${tagLabels[tag] || '系統'}</span>${zh}
+    </div>
+    ${en ? `<div class="log-text-en">${en}</div>` : ''}
+  `;
+  log.appendChild(entry);
+  log.scrollTop = log.scrollHeight;
+}
+
+// ══════════════════════════════════════════════════════
+//  TYPING EFFECT
+// ══════════════════════════════════════════════════════
+let typingTimeout = null;
+function typeMessage(msg) {
+  const el = document.getElementById('typing-output');
+  el.innerHTML = '';
+  let i = 0;
+  if (typingTimeout) clearTimeout(typingTimeout);
+  function tick() {
+    if (i < msg.length) {
+      el.innerHTML = msg.slice(0, ++i) + '<span class="cursor-blink"></span>';
+      typingTimeout = setTimeout(tick, 35 + Math.random() * 30);
+    } else {
+      el.innerHTML = msg + '<span class="cursor-blink"></span>';
+    }
+  }
+  tick();
+}
+
+// ══════════════════════════════════════════════════════
+//  BROADCAST BANNER
+// ══════════════════════════════════════════════════════
+function showBroadcast(msg, duration = 4000) {
+  const banner = document.getElementById('broadcast-banner');
+  document.getElementById('broadcast-msg').textContent = msg;
+  banner.classList.add('visible');
+  setTimeout(() => banner.classList.remove('visible'), duration);
+}
+
+// ══════════════════════════════════════════════════════
+//  QUOTE OVERLAY
+// ══════════════════════════════════════════════════════
+function showQuote(q) {
+  document.getElementById('q-en').textContent = `"${q.en}"`;
+  document.getElementById('q-zh').textContent = `「${q.zh}」`;
+  document.getElementById('q-src').textContent = q.src;
+  document.getElementById('quote-overlay').classList.add('visible');
+  paused = true;
+}
+document.getElementById('quote-dismiss').addEventListener('click', () => {
+  document.getElementById('quote-overlay').classList.remove('visible');
+  paused = false;
+});
+
+// ══════════════════════════════════════════════════════
+//  SPONSOR FEED
+// ══════════════════════════════════════════════════════
+function addSponsor() {
+  const feed = document.getElementById('sponsor-feed');
+  const s = SPONSORS[Math.floor(Math.random() * SPONSORS.length)];
+  const [who, what] = s.split(' → ');
+  const entry = document.createElement('div');
+  entry.className = 'sponsor-entry';
+  entry.innerHTML = `<span>${what}</span> 獲得贊助 ─ ${who}`;
+  feed.insertBefore(entry, feed.firstChild);
+  if (feed.children.length > 20) feed.removeChild(feed.lastChild);
+}
+
+// ══════════════════════════════════════════════════════
+//  ELIMINATE TRIBUTE
+// ══════════════════════════════════════════════════════
+function eliminateTribute(tribute) {
+  tribute.alive = false;
+  deadCount++;
+  const card = document.getElementById(`tribute-${tribute.id}`);
+  if (card) {
+    card.classList.add('eliminated');
+    card.querySelector('.tribute-status').className = 'tribute-status status-dead';
+    card.querySelector('.tribute-status').textContent = '已淘汰';
+  }
+  showBroadcast(`第 ${tribute.district} 區貢品「${tribute.name}」已被淘汰`);
+  typeMessage(`處理淘汰記錄：${tribute.name} // DISTRICT ${tribute.district} // CONFIRMED`);
+  updateStats();
+  renderDistricts();
+
+  // check game over
+  const alive = tributes.filter(t => t.alive);
+  if (alive.length <= 1) {
+    setTimeout(() => showGameOver(alive[0]), 2500);
+  }
+}
+
+// ══════════════════════════════════════════════════════
+//  GAME OVER
+// ══════════════════════════════════════════════════════
+function showGameOver(winner) {
+  gameOver = true;
+  paused = true;
+  const q = QUOTES[0];
+  document.getElementById('winner-name').textContent = winner ? winner.name : '無人生還';
+  document.getElementById('winner-district').textContent = winner ? `第 ${winner.district} 區代表 // DISTRICT ${winner.district} VICTOR` : 'NO VICTOR';
+  document.getElementById('go-quote-en').textContent = `"${q.en}"`;
+  document.getElementById('go-quote-zh').textContent = `「${q.zh}」`;
+  document.getElementById('game-over').classList.add('visible');
+}
+
+document.getElementById('btn-restart').addEventListener('click', () => {
+  document.getElementById('game-over').classList.remove('visible');
+  tributes = TRIBUTES_INIT.map(t => ({ ...t, alive: true }));
+  gameDay = 1;
+  eventCount = 0;
+  deadCount = 0;
+  quoteQueue = [...QUOTES];
+  gameOver = false;
+  paused = false;
+  document.getElementById('event-log').innerHTML = '';
+  document.getElementById('sponsor-feed').innerHTML = '';
+  renderTributes();
+  renderDistricts();
+  updateStats();
+  init();
+});
+
+// ══════════════════════════════════════════════════════
+//  RANDOM EVENT ENGINE
+// ══════════════════════════════════════════════════════
+function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+function getAliveTributes() { return tributes.filter(t => t.alive); }
+
+function interpolate(str, a, b, n, d) {
+  return str
+    .replace('{A}', a ? a.name : '未知')
+    .replace('{B}', b ? b.name : '未知')
+    .replace('{N}', n || deadCount)
+    .replace('{D}', d || Math.ceil(Math.random() * 12));
+}
+
+function generateEvent() {
+  if (paused || gameOver) return;
+  const alive = getAliveTributes();
+  if (alive.length <= 1) return;
+
+  const roll = Math.random();
+  let evTemplate, evType, killer, victim;
+
+  if (roll < 0.35 && alive.length >= 2) {
+    // combat
+    evTemplate = pick(EVENTS.combat);
+    const [a, b] = alive.sort(() => Math.random()-0.5).slice(0, 2);
+    killer = a; victim = b;
+    const zh = interpolate(evTemplate.zh, a, b);
+    const en = interpolate(evTemplate.en, a, b);
+    addLogEntry(zh, en, evTemplate.kills ? 'death' : 'combat', 'combat');
+    if (evTemplate.kills) {
+      setTimeout(() => eliminateTribute(victim), 600);
+    } else {
+      typeMessage(`記錄戰鬥事件：${a.name} vs ${b.name}`);
+    }
+  } else if (roll < 0.55) {
+    // alliance/social
+    evTemplate = pick(EVENTS.alliance);
+    const [a, b] = alive.sort(() => Math.random()-0.5).slice(0, 2);
+    const zh = interpolate(evTemplate.zh, a, b);
+    const en = interpolate(evTemplate.en, a, b);
+    addLogEntry(zh, en, 'combat', 'social');
+    typeMessage(`記錄社交事件：第 ${a.district} 區 ↔ 第 ${b.district} 區`);
+  } else if (roll < 0.80) {
+    // hazard
+    evTemplate = pick(EVENTS.hazard);
+    const a = pick(alive);
+    const zh = interpolate(evTemplate.zh, a);
+    const en = interpolate(evTemplate.en, a);
+    addLogEntry(zh, en, 'hazard', 'nature');
+    typeMessage(`偵測環境異常事件 // ARENA HAZARD ACTIVATED`);
+    // 20% chance hazard kills
+    if (Math.random() < 0.2 && alive.length > 2) {
+      const victim = pick(alive);
+      setTimeout(() => {
+        addLogEntry(
+          `${victim.name} 因競技場環境威脅無法逃脫，已被淘汰。`,
+          `${victim.nameEn} fails to escape arena hazard. Eliminated.`,
+          'death', 'nature'
+        );
+        eliminateTribute(victim);
+      }, 1200);
+    }
+  } else {
+    // system
+    evTemplate = pick(EVENTS.system);
+    const zh = interpolate(evTemplate.zh, null, null, deadCount);
+    const en = interpolate(evTemplate.en, null, null, deadCount);
+    addLogEntry(zh, en, 'system', 'system');
+    typeMessage(`系統事件處理中 // CAPITOL SYSTEM MESSAGE`);
+    addSponsor();
+  }
+
+  // advance day occasionally
+  if (Math.random() < 0.08) {
+    gameDay++;
+    updateStats();
+    addLogEntry(
+      `競技場進入第 ${gameDay} 日。都城提醒各位觀看者保持關注。`,
+      `Arena enters Day ${gameDay}. The Capitol reminds all viewers to remain attentive.`,
+      'system', 'system'
+    );
+    if (Math.random() < 0.6 && quoteQueue.length > 0) {
+      const q = quoteQueue.shift();
+      setTimeout(() => showQuote(q), 800);
+    }
+  }
+}
+
+// ══════════════════════════════════════════════════════
+//  CONTROLS
+// ══════════════════════════════════════════════════════
+document.getElementById('btn-auto').addEventListener('click', function() {
+  paused = false;
+  this.classList.add('active');
+  document.getElementById('btn-pause').classList.remove('active');
+});
+document.getElementById('btn-pause').addEventListener('click', function() {
+  paused = true;
+  this.classList.add('active');
+  document.getElementById('btn-auto').classList.remove('active');
+});
+document.getElementById('btn-quote').addEventListener('click', () => {
+  const q = pick(QUOTES);
+  showQuote(q);
+});
+
+// ══════════════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════════════
+function init() {
+  // opening sequence
+  addLogEntry(
+    '第 74 屆飢餓遊戲正式開始。都城控制系統已完全啟動。',
+    'The 74th Hunger Games officially commences. Capitol Control System fully operational.',
+    'system', 'system'
+  );
+  typeMessage(`系統初始化完成 // 第 74 屆飢餓遊戲 // 記錄開始`);
+
+  setTimeout(() => {
+    addLogEntry(
+      '所有 24 名貢品已部署至競技場。生存記錄器已啟動。',
+      'All 24 tributes deployed to arena. Survival trackers activated.',
+      'system', 'system'
+    );
+    showBroadcast('第 74 屆飢餓遊戲現已開始');
+  }, 1500);
+
+  setTimeout(() => {
+    showQuote(QUOTES[0]);
+  }, 3000);
+
+  // event loop
+  setInterval(() => {
+    if (!paused && !gameOver) generateEvent();
+  }, 3200 + Math.random() * 1400);
+
+  // sponsor feed ticker
+  setInterval(() => {
+    if (!gameOver) addSponsor();
+  }, 7000);
+}
+
+// ══════════════════════════════════════════════════════
+//  BOOT
+// ══════════════════════════════════════════════════════
+renderTributes();
+renderDistricts();
+updateStats();
+init();
+</script>
+</body>
+</html>
